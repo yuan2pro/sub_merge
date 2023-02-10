@@ -1,0 +1,54 @@
+name: sub_merge
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "0 0/1 * * *"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: emigrate code
+        uses: actions/checkout@v3
+      - name: install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          check-latest: true
+      - name: load cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/run_in_Actions/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: set timezone
+        run: sudo timedatectl set-timezone 'Asia/Shanghai'
+      - name: install dependencies
+        run: |
+          pip install -r ./requirements.txt
+      - name: run & commit
+        run: |
+          rm -rf ./sub/*
+          wget -O subconverter.tar.gz https://github.com/tindy2013/subconverter/releases/latest/download/subconverter_linux64.tar.gz
+          tar -zxvf subconverter.tar.gz -C ./
+          chmod +x ./subconverter/subconverter && nohup ./subconverter/subconverter >./subconverter.log 2>&1 &
+          python ./url_update.py
+          python ./gen_yaml.py
+          Emoji=("🎉" "🤞" "✨" "🎁" "🎈" "🎄" "🎨" "💋" "🍓" "🍕" "🍉" "💐" "🌴" "🚀" "🛸" "🗽" "⛅" "🌈" "🔥" "⛄" "🐶" "🏅" "🦄" "🐤")
+          MSG="${Emoji[$[$RANDOM % ${#Emoji[@]}]]} UPDATE TIME: $(date +%Y-%m-%d" "%H:%M:%S)"
+          echo $MSG > README.md
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add -f ./sub
+          git add -f ./sub_list.json
+          git add -f ./README.md
+          git commit -m "$MSG"
+
+      - name: push
+        uses: ad-m/github-push-action@master
+        with:
+          # github_token: ${{ secrets.TOKEN }}
+          branch: dev
