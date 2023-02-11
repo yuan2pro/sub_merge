@@ -5,8 +5,11 @@ import re
 import threading
 import time
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
+import yaml
+from ping3 import ping, verbose_ping
 from requests.adapters import HTTPAdapter
 
 url_file = "./sub/url.txt"
@@ -32,6 +35,22 @@ length = len(url_list)
 error_text = []
 
 thread_num = length // step + 1
+
+
+def pings(ips):
+    # ips为可迭代对象,每个元素为一个IP地址或域名
+    # 返回值为一个字典,key保存ip,value保存是否能ping通
+    ips_status = dict()
+    # 多线程执行ping函数
+    with ThreadPoolExecutor(max_workers=500) as pool:
+        results = pool.map(ping, ips)
+    for index, result in enumerate(results):
+        ip = ips[index]
+        if type(result) == float:
+            ips_status[ip] = True
+        else:
+            ips_status[ip] = False
+    return ips_status
 
 
 def run(index):
@@ -63,9 +82,9 @@ def run(index):
             resp = s.get(converted_url, timeout=30)
             # 如果解析出错，将原始链接内容拷贝下来
             text = resp.text
-            # print(text)
             try:
                 text.encode('utf-8')
+                pingtext = yaml.full_load(text)
             except UnicodeEncodeError:
                 print(str(index)+"字符error")
                 break
@@ -74,7 +93,7 @@ def run(index):
                 break
             if 'The following link' in text:
                 # 通过with语句使用线程锁
-                with err:
+                with error_text:
                     error_text.append(text)
                 err_urls = re.findall(reg, text)
                 for err in err_urls:
@@ -83,6 +102,15 @@ def run(index):
             if '414 Request-URI Too Large' in text:
                 print(url, '414 Request-URI Too Large')
                 break
+            if pingtext is None:
+                proxies = pingtext['proxies']
+                servers = []
+                for proxie in proxies:
+                    server = proxie['server']
+                    servers.append(server)
+                ping_res = pings(servers)
+                with error_text:
+                    error_text.append(ping_res+'\n')
             clash_file = open(yaml_file, 'w', encoding='utf-8')
             clash_file.write(text)
             clash_file.close()
@@ -96,10 +124,15 @@ def run(index):
     # print(threading.current_thread().getName(), "✅")
 
 
+thread_list = []
 for i in range(thread_num):
     t = threading.Thread(target=run, args=(i,))
+    thread_list.append(t)
     # t.setDaemon(True)   # 把子线程设置为守护线程，必须在start()之前设置
     t.start()
+for thread in thread_list:
+    thread.join()
+print("all thread finished")
 print(threading.active_count(), "个线程已启动")
 
 
