@@ -2,6 +2,8 @@
 
 import random
 import re
+import threading
+import time
 import urllib.parse
 
 import requests
@@ -28,12 +30,21 @@ step = 30
 index = 0
 length = len(url_list)
 error_text = []
-for i in range(0, length, step):
+
+thread_num = length // step + 1
+
+
+def run(index):
+    # print(threading.current_thread().getName(), "开始工作")
+    # for i in range(0, length, step):
     yaml_file = "./sub/"+str(index)+".yaml"
-    if i+step >= length:
-        url = "|".join(url_list[i:length])
+    cur = index * step
+    i = (index+1)*step
+    # print(cur, i, length)
+    if i >= length:
+        url = "|".join(url_list[cur:length])
     else:
-        url = "|".join(url_list[i:i+step])
+        url = "|".join(url_list[cur:i])
     while True:
         # print(url)
         url_quote = urllib.parse.quote(url, safe='')
@@ -44,7 +55,7 @@ for i in range(0, length, step):
         converted_url = server_host + '/sub?target=clash&url=' + url_quote + \
             '&emoji=true&sort=true&fdn=true&exclude=' + \
             exclude_quote
-        print(converted_url)
+        # print(converted_url)
         try:
             s = requests.Session()
             s.mount('http://', HTTPAdapter(max_retries=5))
@@ -60,27 +71,38 @@ for i in range(0, length, step):
                 break
             if 'No nodes were found!' in text:
                 print(url + " No nodes were found!")
-                error_text.append(text)
                 break
             if 'The following link' in text:
-                error_text.append(text)
+                # 通过with语句使用线程锁
+                with err:
+                    error_text.append(text)
                 err_urls = re.findall(reg, text)
                 for err in err_urls:
                     url = url.replace(err, "")
                 continue
             if '414 Request-URI Too Large' in text:
-                error_text.append(text)
+                print(url, '414 Request-URI Too Large')
                 break
             clash_file = open(yaml_file, 'w', encoding='utf-8')
             clash_file.write(text)
             clash_file.close()
-            index = index+1
+            # index = index+1
             break
         except Exception as err:
             # 链接有问题，直接返回原始错误
             print('网络错误，检查订阅转换服务器是否失效:' + '\n' +
                   converted_url)
             break
+    # print(threading.current_thread().getName(), "✅")
+
+
+for i in range(thread_num):
+    t = threading.Thread(target=run, args=(i,))
+    # t.setDaemon(True)   # 把子线程设置为守护线程，必须在start()之前设置
+    t.start()
+print(threading.active_count(), "个线程已启动")
+
+
 error = open("./sub/error.txt", 'w', encoding='utf-8')
 error.write("\n".join(error_text))
 error.close()
