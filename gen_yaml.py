@@ -43,7 +43,7 @@ for i in range(0, length, step):
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + url_quote + \
             '&emoji=true&sort=true&fdn=true&exclude=' + \
-            exclude_quote+"&config="+config_quote
+            exclude_quote
         print(converted_url)
         try:
             s = requests.Session()
