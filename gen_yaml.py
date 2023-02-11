@@ -10,10 +10,10 @@ from requests.adapters import HTTPAdapter
 url_file = "./sub/url.txt"
 server_host = 'http://127.0.0.1:25500'
 # server_host = 'https://sub.xeton.dev'
-config_url = 'https://raw.githubusercontent.com/cutethotw/ClashRule/main/GeneralClashRule.ini'
+config_url = 'https://raw.githubusercontent.com/zzcabc/Rules/master/MyConvert/MyRules.ini'
 
 include = ".*香港.*|.*HK.*|.*Hong Kong.*|.*🇭🇰.*"
-exclude = ".*测速.*"
+exclude = ".*测速.*|.*禁止.*|.*过期.*|.*剩余.*"
 
 reg = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 
@@ -42,7 +42,9 @@ for i in range(0, length, step):
         exclude_quote = urllib.parse.quote(exclude, safe='')
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + url_quote + \
-            '&emoji=true&sort=true&list=true&exclude='+exclude_quote
+            '&emoji=true&sort=true&fdn=true&exclude=' + \
+            exclude_quote+"&config="+config_quote
+        print(converted_url)
         try:
             s = requests.Session()
             s.mount('http://', HTTPAdapter(max_retries=5))
