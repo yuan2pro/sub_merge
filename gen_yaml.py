@@ -22,6 +22,9 @@ exclude = ".*测速.*|.*禁止.*|.*过期.*|.*剩余.*"
 
 reg = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 
+exce_url = {'1.1.1.1', '8.8.8.8', '0.0.0.0', '127.0.0.1'}
+use_url = {}
+
 with open(url_file, 'r', encoding='utf-8') as f:  # 载入订阅链接
     urls = f.read()
     f.close()
@@ -49,18 +52,18 @@ def run(index):
         url = "|".join(url_list[cur:length])
     else:
         url = "|".join(url_list[cur:i])
-    lock.acquire()
     while True:
         # print(url)
         url_quote = urllib.parse.quote(url, safe='')
-        config_quote = urllib.parse.quote(config_url, safe='')
-        include_quote = urllib.parse.quote(include, safe='')
+        # config_quote = urllib.parse.quote(config_url, safe='')
+        # include_quote = urllib.parse.quote(include, safe='')
         exclude_quote = urllib.parse.quote(exclude, safe='')
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + url_quote + \
-            '&emoji=true&sort=true&fdn=true&exclude=' + \
+            '&emoji=true&sort=true&fdn=true&list=true&exclude=' + \
             exclude_quote
         # print(converted_url)
+        lock.acquire()
         try:
             s = requests.Session()
             s.mount('http://', HTTPAdapter(max_retries=5))
@@ -70,9 +73,9 @@ def run(index):
             text = resp.text
             try:
                 text.encode('utf-8')
-                yaml.full_load(text)
-            except UnicodeEncodeError:
-                print(str(index)+"字符error")
+                yaml_text = yaml.full_load(text)
+            except Exception as e:
+                print(str(index)+" " + e)
                 break
             if 'No nodes were found!' in text:
                 print(url + " No nodes were found!")
@@ -86,18 +89,41 @@ def run(index):
             if '414 Request-URI Too Large' in text:
                 print(url, '414 Request-URI Too Large')
                 break
-            clash_file = open(yaml_file, 'w', encoding='utf-8')
-            clash_file.write(text)
-            clash_file.close()
-            # index = index+1
-            break
         except Exception as err:
             # 链接有问题，直接返回原始错误
-            print('网络错误，检查订阅转换服务器是否失效:' + '\n' +
-                  converted_url)
+            print(str(index)+' 错误' + '\n')
             break
         finally:
             lock.release()
+        if yaml_text is not None:
+            try:
+                proxies = yaml_text['proxies']
+                print(len(proxies))
+                for proxie in proxies:
+                    server = proxie['server']
+                    if server in exce_url:
+                        proxies.remove(proxie)
+                        continue
+                    if server in use_url:
+                        continue
+                    try:
+                        ping_res = ping(server, unit='ms')
+                        if not ping_res:
+                            exce_url.add(server)
+                            proxies.remove(proxie)
+                        else:
+                            use_url.add(server)
+                    except Exception:
+                        exce_url.add(server)
+                        proxies.remove(proxie)
+                        continue
+                print(len(proxies))
+                with open(yaml_file, "w", encoding="utf-8") as f:
+                    f.write(yaml.dump(yaml_text))
+            except Exception as e:
+                print(e)
+        break
+
     # print(threading.current_thread().getName(), "✅")
 
 
@@ -116,3 +142,7 @@ print("all thread finished")
 error = open("./sub/error.txt", 'w', encoding='utf-8')
 error.write("\n".join(error_text))
 error.close()
+# with open("./sub/exce_url.txt", 'w', encoding='utf-8') as f:
+#     f.write("\n".join(exce_url))
+# with open("./sub/use_url.txt", 'w', encoding='utf-8') as f:
+#     f.write("\n".join(use_url))
