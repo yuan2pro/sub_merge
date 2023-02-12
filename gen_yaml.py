@@ -38,22 +38,6 @@ thread_num = length // step + 1
 lock = threading.Lock()
 
 
-def pings(ips):
-    # ips为可迭代对象,每个元素为一个IP地址或域名
-    # 返回值为一个字典,key保存ip,value保存是否能ping通
-    ips_status = dict()
-    # 多线程执行ping函数
-    with ThreadPoolExecutor(max_workers=500) as pool:
-        results = pool.map(ping, ips)
-    for index, result in enumerate(results):
-        ip = ips[index]
-        if type(result) == float:
-            ips_status[ip] = True
-        else:
-            ips_status[ip] = False
-    return ips_status
-
-
 def run(index):
     # print(threading.current_thread().getName(), "开始工作")
     # for i in range(0, length, step):
@@ -86,8 +70,7 @@ def run(index):
             text = resp.text
             try:
                 text.encode('utf-8')
-                pingtext = yaml.full_load(text)
-                # print(pingtext)
+                yaml.full_load(text)
             except UnicodeEncodeError:
                 print(str(index)+"字符error")
                 break
@@ -103,14 +86,6 @@ def run(index):
             if '414 Request-URI Too Large' in text:
                 print(url, '414 Request-URI Too Large')
                 break
-            if pingtext is None:
-                proxies = pingtext['proxies']
-                servers = []
-                for proxie in proxies:
-                    server = proxie['server']
-                    servers.append(server)
-                ping_res = pings(servers)
-                error_text.append(ping_res+'\n')
             clash_file = open(yaml_file, 'w', encoding='utf-8')
             clash_file.write(text)
             clash_file.close()
