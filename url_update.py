@@ -3,7 +3,7 @@
 import json
 import urllib.parse
 from datetime import datetime, timedelta
-
+import yaml
 import requests
 from requests.adapters import HTTPAdapter
 
@@ -75,7 +75,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
         url_quote = urllib.parse.quote(url, safe='')
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + \
-            url_quote + '&list=true&fdn=true&emoji=true'
+                        url_quote + '&list=true&fdn=true&emoji=true'
         try:
             s = requests.Session()
             s.mount('http://', HTTPAdapter(max_retries=5))
@@ -96,8 +96,9 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
             # 检测节点乱码
             try:
                 text.encode('utf-8')
-            except UnicodeEncodeError:
-                print("乱码:"+url)
+                yaml.full_load(text)
+            except Exception:
+                print("乱码:" + url)
                 continue
             avaliable_url.append(url)
         except Exception as err:
@@ -155,8 +156,8 @@ class update_url():
             front_url = 'https://raw.githubusercontent.com/halfaaa/Free/main/'
             end_url = '.txt'
             url_update = front_url + \
-                str(today.month) + "." + str(today.day) + \
-                "." + str(today.year) + end_url
+                         str(today.month) + "." + str(today.day) + \
+                         "." + str(today.year) + end_url
             if check_url(url_update):
                 return [21, url_update]
             else:
@@ -208,7 +209,7 @@ class update_url():
                 url_update = '|'.join(url_update_array)
                 return [54, url_update]
             except Exception as err:
-                print(err)
+                print(str(err))
                 return [54, 404]
 
         elif id == 57:
@@ -241,7 +242,7 @@ class update_url():
                     url_update = '|'.join(url_update_array)
                     return [75, url_update]
                 except Exception as err:
-                    print(err)
+                    print(str(err))
                     return [75, 404]
             else:
                 return [75, 404]

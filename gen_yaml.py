@@ -44,9 +44,9 @@ lock = threading.Lock()
 def run(index):
     # print(threading.current_thread().getName(), "开始工作")
     # for i in range(0, length, step):
-    yaml_file = "./sub/"+str(index)+".yaml"
+    yaml_file = "./sub/" + str(index) + ".yaml"
     cur = index * step
-    i = (index+1)*step
+    i = (index + 1) * step
     # print(cur, i, length)
     if i >= length:
         url = "|".join(url_list[cur:length])
@@ -60,8 +60,8 @@ def run(index):
         exclude_quote = urllib.parse.quote(exclude, safe='')
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + url_quote + \
-            '&emoji=true&sort=true&fdn=true&list=true&exclude=' + \
-            exclude_quote
+                        '&emoji=true&sort=true&fdn=true&list=true&exclude=' + \
+                        exclude_quote
         # print(converted_url)
         lock.acquire()
         try:
@@ -75,7 +75,7 @@ def run(index):
                 text.encode('utf-8')
                 yaml_text = yaml.full_load(text)
             except Exception as e:
-                print(str(index)+" " + e)
+                print(str(index) + " " + str(e))
                 break
             if 'No nodes were found!' in text:
                 print(url + " No nodes were found!")
@@ -89,9 +89,9 @@ def run(index):
             if '414 Request-URI Too Large' in text:
                 print(url, '414 Request-URI Too Large')
                 break
-        except Exception as err:
+        except Exception:
             # 链接有问题，直接返回原始错误
-            print(str(index)+' 错误' + '\n')
+            print(str(index) + ' 错误' + '\n')
             break
         finally:
             lock.release()
@@ -106,7 +106,7 @@ def run(index):
                     if server in use_url:
                         continue
                     try:
-                        verbose_ping(server, count=1)
+                        # verbose_ping(server, count=1)
                         ping_res = ping(server, unit='ms')
                         if not ping_res:
                             exce_url.add(server)
@@ -121,7 +121,7 @@ def run(index):
                 with open(yaml_file, "w", encoding="utf-8") as f:
                     f.write(yaml.dump(yaml_text))
             except Exception as e:
-                print(e)
+                print(str(e))
         break
 
     # print(threading.current_thread().getName(), "✅")
@@ -137,7 +137,6 @@ print(threading.active_count(), "个线程已启动")
 for thread in thread_list:
     thread.join()
 print("all thread finished")
-
 
 error = open("./sub/error.txt", 'w', encoding='utf-8')
 error.write("\n".join(error_text))
