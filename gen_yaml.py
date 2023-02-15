@@ -23,7 +23,7 @@ exclude = ".*测速.*|.*禁止.*|.*过期.*|.*剩余.*|.*CN.*|.*备用.*"
 reg = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 
 exce_url = {'1.1.1.1', '8.8.8.8', '0.0.0.0', '127.0.0.1', 'google.com'}
-use_url = {}
+use_url = set()
 
 with open(url_file, 'r', encoding='utf-8') as f:  # 载入订阅链接
     urls = f.read()
@@ -98,7 +98,6 @@ def run(index):
         if yaml_text is not None:
             try:
                 proxies = yaml_text['proxies']
-                print(len(proxies))
                 for proxie in proxies:
                     server = proxie['server']
                     if server in exce_url:
@@ -107,6 +106,7 @@ def run(index):
                     if server in use_url:
                         continue
                     try:
+                        verbose_ping(server, count=1)
                         ping_res = ping(server, unit='ms')
                         if not ping_res:
                             exce_url.add(server)
@@ -117,7 +117,7 @@ def run(index):
                         exce_url.add(server)
                         proxies.remove(proxie)
                         continue
-                print(len(proxies))
+                yaml_text['proxies'] = proxies
                 with open(yaml_file, "w", encoding="utf-8") as f:
                     f.write(yaml.dump(yaml_text))
             except Exception as e:
