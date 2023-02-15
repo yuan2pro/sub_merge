@@ -5,6 +5,7 @@ import urllib.parse
 from datetime import datetime, timedelta
 
 import requests
+import yaml
 from requests.adapters import HTTPAdapter
 
 # 文件路径定义
@@ -62,7 +63,7 @@ def write_url():
 
 def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
     # 使用远程订阅转换服务
-    # server_host = 'https://sub.xeton.dev'
+    server_host = 'http://192.168.100.1:25500'
     # 使用本地订阅转换服务
     # 分割订阅链接
     urls = url_raw.split('|')
@@ -96,6 +97,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
             # 检测节点乱码
             try:
                 text.encode('utf-8')
+                yaml.full_load(text)
             except UnicodeEncodeError:
                 print("乱码:"+url)
                 continue
