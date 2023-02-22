@@ -3,8 +3,9 @@
 import json
 import urllib.parse
 from datetime import datetime, timedelta
-import yaml
+
 import requests
+import yaml
 from requests.adapters import HTTPAdapter
 
 # 文件路径定义
@@ -111,7 +112,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
 
 class update_url():
 
-    def update_main(update_enable_list=[0, 11, 25, 43, 54, 57, 75]):
+    def update_main(update_enable_list=[0, 25, 43, 54, 57, 75]):
         if len(update_enable_list) > 0:
             for id in update_enable_list:
                 status = update_url.update(id)
@@ -150,18 +151,6 @@ class update_url():
                 return [0, url_update]
             else:
                 return [0, 404]
-
-        elif id == 11:
-            today = datetime.today()
-            front_url = 'https://raw.githubusercontent.com/halfaaa/Free/main/'
-            end_url = '.txt'
-            url_update = front_url + \
-                         str(today.month) + "." + str(today.day) + \
-                         "." + str(today.year) + end_url
-            if check_url(url_update):
-                return [21, url_update]
-            else:
-                return [21, 404]
 
         elif id == 43:
             # remarks: v2raydy/v2ray, 将原链接更新至 https://https://raw.githubusercontent.com/v2raydy/v2ray/main/%MM-%(DD - 1)%str%1.txt
