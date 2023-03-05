@@ -39,7 +39,7 @@ error_text = []
 
 thread_num = length // step + 1
 lock = threading.Lock()
-
+lock1 = threading.Lock()
 
 def run(index):
     # print(threading.current_thread().getName(), "开始工作")
@@ -60,11 +60,11 @@ def run(index):
         exclude_quote = urllib.parse.quote(exclude, safe='')
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + url_quote + \
-                        '&emoji=true&sort=true&fdn=true&list=true&exclude=' + \
-                        exclude_quote
+            '&emoji=true&sort=true&fdn=true&list=true&exclude=' + \
+            exclude_quote
         # print(converted_url)
-        lock.acquire()
         try:
+            lock.acquire()
             s = requests.Session()
             s.mount('http://', HTTPAdapter(max_retries=5))
             s.mount('https://', HTTPAdapter(max_retries=5))
@@ -100,14 +100,13 @@ def run(index):
                 proxies = yaml_text['proxies']
                 for proxie in proxies:
                     server = proxie['server']
-                    if server in exce_url:
+                    if server in exce_url or server in use_url:
                         proxies.remove(proxie)
-                        continue
-                    if server in use_url:
                         continue
                     try:
                         # verbose_ping(server, count=1)
                         ping_res = ping(server, unit='ms')
+                        lock1.acquire()
                         if not ping_res:
                             exce_url.add(server)
                             proxies.remove(proxie)
@@ -117,6 +116,8 @@ def run(index):
                         exce_url.add(server)
                         proxies.remove(proxie)
                         continue
+                    finally:
+                        lock1.release()
                 yaml_text['proxies'] = proxies
                 with open(yaml_file, "w", encoding="utf-8") as f:
                     f.write(yaml.dump(yaml_text))
