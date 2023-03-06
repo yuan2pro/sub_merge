@@ -40,7 +40,7 @@ error_text = []
 
 thread_num = length // step + 1
 lock = threading.Lock()
-lock1 = threading.Lock()
+# lock1 = threading.Lock()
 
 def run(index):
     # print(threading.current_thread().getName(), "开始工作")
@@ -98,7 +98,7 @@ def run(index):
             lock.release()
         if yaml_text is not None:
             try:
-                lock1.acquire()
+                # lock1.acquire()
                 proxies = yaml_text['proxies']
                 for proxie in proxies:
                     server = proxie['server']
@@ -117,8 +117,8 @@ def run(index):
                         exce_url.add(server)
                         proxies.remove(proxie)
                         continue
-                    finally:
-                        lock1.release()
+                    # finally:
+                    #     lock1.release()
                 yaml_text['proxies'] = proxies
                 with open(yaml_file, "w", encoding="utf-8") as f:
                     f.write(yaml.dump(yaml_text))
