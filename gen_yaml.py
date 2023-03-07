@@ -14,7 +14,7 @@ from requests.adapters import HTTPAdapter
 
 url_file = "./sub/url.txt"
 server_host = 'http://127.0.0.1:25500'
-server_host = 'http://192.168.100.1:25500'
+# server_host = 'http://192.168.100.1:25500'
 config_url = 'https://raw.githubusercontent.com/zzcabc/Rules/master/MyConvert/MyRules.ini'
 
 include = ".*香港.*|.*HK.*|.*Hong Kong.*|.*🇭🇰.*"
