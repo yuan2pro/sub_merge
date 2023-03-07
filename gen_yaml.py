@@ -42,6 +42,7 @@ thread_num = length // step + 1
 lock = threading.Lock()
 # lock1 = threading.Lock()
 
+
 def run(index):
     # print(threading.current_thread().getName(), "开始工作")
     # for i in range(0, length, step):
@@ -102,6 +103,14 @@ def run(index):
                 proxies = yaml_text['proxies']
                 for proxie in proxies:
                     server = proxie['server']
+                    # TLS must be true with h2/ grpc network
+                    if "network" in proxie.keys() and "tls" in proxie.keys():
+                        network = proxie['network']
+                        tls = proxie['tls']
+                        if network == "h2" or network == "grpc":
+                            if tls is False:
+                                proxies.remove(proxie)
+                                continue
                     if server in exce_url or server in use_url:
                         proxies.remove(proxie)
                         continue
@@ -140,9 +149,6 @@ for thread in thread_list:
     thread.join()
 print("all thread finished")
 
-error = open("./sub/error.txt", 'w', encoding='utf-8')
-error.write("\n".join(error_text))
-error.close()
 # with open("./sub/exce_url.txt", 'w', encoding='utf-8') as f:
 #     f.write("\n".join(exce_url))
 # with open("./sub/use_url.txt", 'w', encoding='utf-8') as f:
