@@ -22,9 +22,8 @@ exclude = ".*测速.*|.*禁止.*|.*过期.*|.*剩余.*|.*CN.*|.*备用.*"
 
 reg = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 
-exce_url = {'1.1.1.1', '8.8.8.8', '0.0.0.0',
-            '127.0.0.1', 'google.com', 'localhost', 'github.com'}
-use_url = set()
+exce_url = ['1.1.1.1', '8.8.8.8', '0.0.0.0',
+            '127.0.0.1', 'google.com', 'localhost', 'github.com']
 
 with open(url_file, 'r', encoding='utf-8') as f:  # 载入订阅链接
     urls = f.read()
@@ -54,6 +53,7 @@ def run(index):
         url = "|".join(url_list[cur:length])
     else:
         url = "|".join(url_list[cur:i])
+    not_proxies = []
     while True:
         # print(url)
         url_quote = urllib.parse.quote(url, safe='')
@@ -91,49 +91,53 @@ def run(index):
             if '414 Request-URI Too Large' in text:
                 print(url, '414 Request-URI Too Large')
                 break
-            if yaml_text is not None:
-                try:
-                    # lock1.acquire()
-                    proxies = yaml_text['proxies']
-                    for proxie in proxies:
-                        server = proxie['server']
-                        # TLS must be true with h2/ grpc network
-                        if "network" in proxie.keys() and "tls" in proxie.keys():
-                            network = proxie['network']
-                            tls = proxie['tls']
-                            if network == "h2" or network == "grpc":
-                                if tls is False:
-                                    proxies.remove(proxie)
-                                    continue
-                        if server in exce_url or server in use_url:
-                            proxies.remove(proxie)
-                            continue
-                        try:
-                            # verbose_ping(server, count=1)
-                            ping_res = ping(server, unit='ms')
-                            if not ping_res:
-                                exce_url.add(server)
-                                proxies.remove(proxie)
-                            else:
-                                use_url.add(server)
-                        except Exception:
-                            exce_url.add(server)
-                            proxies.remove(proxie)
-                            continue
-                        # finally:
-                        #     lock1.release()
-                    yaml_text['proxies'] = proxies
-                    with open(yaml_file, "w", encoding="utf-8") as f:
-                        f.write(yaml.dump(yaml_text))
-                except Exception as e:
-                    print(str(e))
         except Exception:
             # 链接有问题，直接返回原始错误
             print(str(index) + ' 错误' + '\n')
             break
         finally:
             lock.release()
-
+        if yaml_text is not None:
+            try:
+                # lock1.acquire()
+                proxies = yaml_text['proxies']
+                for proxie in proxies:
+                    server = proxie['server']
+                    # TLS must be true with h2/ grpc network
+                    if "network" in proxie.keys() and "tls" in proxie.keys():
+                        network = proxie['network']
+                        tls = proxie['tls']
+                        if network == "h2" or network == "grpc":
+                            if tls is False:
+                                proxies.remove(proxie)
+                                not_proxies.append(proxie)
+                                continue
+                    if server in exce_url:
+                        proxies.remove(proxie)
+                        not_proxies.append(proxie)
+                        continue
+                    try:
+                        # verbose_ping(server, count=1)
+                        ping_res = ping(server, unit='ms')
+                        exce_url.append(server)
+                        if not ping_res:
+                            proxies.remove(proxie)
+                            not_proxies.append(proxie)
+                    except Exception:
+                        proxies.remove(proxie)
+                        not_proxies.append(proxie)
+                        continue
+                    # finally:
+                    #     lock1.release()
+                with open(yaml_file, "w", encoding="utf-8") as f:
+                    print(str(index)+" complete")
+                    print("\n".join(not_proxies))
+                    for p in not_proxies:
+                        if p in yaml_text["proxies"]:
+                            yaml_text["proxies"].remove(p)
+                    f.write(yaml.dump(yaml_text))
+            except Exception as e:
+                print(str(e))
         break
 
     # print(threading.current_thread().getName(), "✅")
