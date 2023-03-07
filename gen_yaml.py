@@ -23,7 +23,7 @@ exclude = ".*测速.*|.*禁止.*|.*过期.*|.*剩余.*|.*CN.*|.*备用.*"
 reg = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 
 exce_url = {'1.1.1.1', '8.8.8.8', '0.0.0.0',
-            '127.0.0.1', 'google.com', 'localhost'}
+            '127.0.0.1', 'google.com', 'localhost', 'github.com'}
 use_url = set()
 
 with open(url_file, 'r', encoding='utf-8') as f:  # 载入订阅链接
