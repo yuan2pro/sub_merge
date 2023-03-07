@@ -14,7 +14,7 @@ from requests.adapters import HTTPAdapter
 
 url_file = "./sub/url.txt"
 server_host = 'http://127.0.0.1:25500'
-# server_host = 'http://192.168.100.1:25500'
+server_host = 'http://192.168.100.1:25500'
 config_url = 'https://raw.githubusercontent.com/zzcabc/Rules/master/MyConvert/MyRules.ini'
 
 include = ".*香港.*|.*HK.*|.*Hong Kong.*|.*🇭🇰.*"
@@ -39,7 +39,7 @@ error_text = []
 
 thread_num = length // step + 1
 lock = threading.Lock()
-# lock1 = threading.Lock()
+lock1 = threading.Lock()
 
 
 def run(index):
@@ -99,7 +99,6 @@ def run(index):
             lock.release()
         if yaml_text is not None:
             try:
-                # lock1.acquire()
                 proxies = yaml_text['proxies']
                 for proxie in proxies:
                     server = proxie['server']
@@ -129,12 +128,14 @@ def run(index):
                         continue
                     # finally:
                     #     lock1.release()
+                lock1.acquire()
                 with open(yaml_file, "w", encoding="utf-8") as f:
                     print(str(index)+" complete " + str(len(not_proxies)))
                     for p in not_proxies:
                         if p in yaml_text["proxies"]:
                             yaml_text["proxies"].remove(p)
                     f.write(yaml.dump(yaml_text))
+                lock1.release()
             except Exception as e:
                 print(str(e))
         break
