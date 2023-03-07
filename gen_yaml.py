@@ -130,8 +130,7 @@ def run(index):
                     # finally:
                     #     lock1.release()
                 with open(yaml_file, "w", encoding="utf-8") as f:
-                    print(str(index)+" complete")
-                    print("\n".join(not_proxies))
+                    print(str(index)+" complete " + str(len(not_proxies)))
                     for p in not_proxies:
                         if p in yaml_text["proxies"]:
                             yaml_text["proxies"].remove(p)
