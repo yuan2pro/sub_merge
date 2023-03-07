@@ -91,48 +91,49 @@ def run(index):
             if '414 Request-URI Too Large' in text:
                 print(url, '414 Request-URI Too Large')
                 break
+            if yaml_text is not None:
+                try:
+                    # lock1.acquire()
+                    proxies = yaml_text['proxies']
+                    for proxie in proxies:
+                        server = proxie['server']
+                        # TLS must be true with h2/ grpc network
+                        if "network" in proxie.keys() and "tls" in proxie.keys():
+                            network = proxie['network']
+                            tls = proxie['tls']
+                            if network == "h2" or network == "grpc":
+                                if tls is False:
+                                    proxies.remove(proxie)
+                                    continue
+                        if server in exce_url or server in use_url:
+                            proxies.remove(proxie)
+                            continue
+                        try:
+                            # verbose_ping(server, count=1)
+                            ping_res = ping(server, unit='ms')
+                            if not ping_res:
+                                exce_url.add(server)
+                                proxies.remove(proxie)
+                            else:
+                                use_url.add(server)
+                        except Exception:
+                            exce_url.add(server)
+                            proxies.remove(proxie)
+                            continue
+                        # finally:
+                        #     lock1.release()
+                    yaml_text['proxies'] = proxies
+                    with open(yaml_file, "w", encoding="utf-8") as f:
+                        f.write(yaml.dump(yaml_text))
+                except Exception as e:
+                    print(str(e))
         except Exception:
             # 链接有问题，直接返回原始错误
             print(str(index) + ' 错误' + '\n')
             break
         finally:
             lock.release()
-        if yaml_text is not None:
-            try:
-                # lock1.acquire()
-                proxies = yaml_text['proxies']
-                for proxie in proxies:
-                    server = proxie['server']
-                    # TLS must be true with h2/ grpc network
-                    if "network" in proxie.keys() and "tls" in proxie.keys():
-                        network = proxie['network']
-                        tls = proxie['tls']
-                        if network == "h2" or network == "grpc":
-                            if tls is False:
-                                proxies.remove(proxie)
-                                continue
-                    if server in exce_url or server in use_url:
-                        proxies.remove(proxie)
-                        continue
-                    try:
-                        # verbose_ping(server, count=1)
-                        ping_res = ping(server, unit='ms')
-                        if not ping_res:
-                            exce_url.add(server)
-                            proxies.remove(proxie)
-                        else:
-                            use_url.add(server)
-                    except Exception:
-                        exce_url.add(server)
-                        proxies.remove(proxie)
-                        continue
-                    # finally:
-                    #     lock1.release()
-                yaml_text['proxies'] = proxies
-                with open(yaml_file, "w", encoding="utf-8") as f:
-                    f.write(yaml.dump(yaml_text))
-            except Exception as e:
-                print(str(e))
+
         break
 
     # print(threading.current_thread().getName(), "✅")
