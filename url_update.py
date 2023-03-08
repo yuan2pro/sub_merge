@@ -112,7 +112,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
 
 class update_url():
 
-    def update_main(update_enable_list=[0, 25, 43, 54, 57, 75]):
+    def update_main(update_enable_list=[0, 25, 43, 54, 57]):
         if len(update_enable_list) > 0:
             for id in update_enable_list:
                 status = update_url.update(id)
@@ -212,29 +212,29 @@ class update_url():
                 return [57, url_update]
             else:
                 return [57, 404]
-
-        elif id == 75:
-            url_raw = 'https://raw.githubusercontent.com/RiverFlowsInUUU/collectSub/main/sub/' + \
-                      str(datetime.today().year) + '/' + str(datetime.today().month) + '/' + \
-                      str(datetime.today().month) + '-' + \
-                      str(datetime.today().day) + '.yaml'
-            if check_url(url_raw):
-                try:
-                    resp = requests.get(url_raw, timeout=2)
-                    resp_content = resp.content.decode('utf-8')
-                    resp_content = resp_content.split('\n')
-                    url_update_array = []
-                    for line in resp_content:
-                        if '- ' in line:
-                            line = line.replace("- ", "")
-                            url_update_array.append(line)
-                    url_update = '|'.join(url_update_array)
-                    return [75, url_update]
-                except Exception as err:
-                    print(str(err))
-                    return [75, 404]
-            else:
-                return [75, 404]
+            
+        # elif id == 75:
+        #     url_raw = 'https://raw.githubusercontent.com/RiverFlowsInUUU/collectSub/main/sub/' + \
+        #               str(datetime.today().year) + '/' + str(datetime.today().month) + '/' + \
+        #               str(datetime.today().month) + '-' + \
+        #               str(datetime.today().day) + '.yaml'
+        #     if check_url(url_raw):
+        #         try:
+        #             resp = requests.get(url_raw, timeout=2)
+        #             resp_content = resp.content.decode('utf-8')
+        #             resp_content = resp_content.split('\n')
+        #             url_update_array = []
+        #             for line in resp_content:
+        #                 if '- ' in line:
+        #                     line = line.replace("- ", "")
+        #                     url_update_array.append(line)
+        #             url_update = '|'.join(url_update_array)
+        #             return [75, url_update]
+        #         except Exception as err:
+        #             print(str(err))
+        #             return [75, 404]
+        #     else:
+        #         return [75, 404]
 
 
 if __name__ == '__main__':
