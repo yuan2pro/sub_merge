@@ -80,9 +80,9 @@ def run(index):
             text = resp.text
             try:
                 text.encode('utf-8')
-                yaml_text = yaml.full_load(text)
+                yaml_text = yaml.safe_load(text)
             except Exception as e:
-                logging.error(str(index) + " " + str(e))
+                logging.error("%d error:%s", index, str(err))
                 break
             if 'No nodes were found!' in text:
                 logging.info(url + " No nodes were found!")
@@ -96,9 +96,9 @@ def run(index):
             if '414 Request-URI Too Large' in text:
                 logging.info(url, '414 Request-URI Too Large')
                 break
-        except Exception:
+        except Exception as err:
             # 链接有问题，直接返回原始错误
-            logging.error(str(index) + ' 错误' + '\n')
+            logging.error("%d error:%s", index, str(err))
             break
         finally:
             lock.release()
@@ -135,7 +135,7 @@ def run(index):
                     #     lock1.release()
                 lock1.acquire()
                 with open(yaml_file, "w", encoding="utf-8") as f:
-                    logging.info(str(index)+" complete " + str(len(not_proxies)))
+                    logging.info("%d complete:%d,", index, len(not_proxies))
                     for p in not_proxies:
                         if p in yaml_text["proxies"]:
                             yaml_text["proxies"].remove(p)
@@ -154,7 +154,7 @@ for i in range(thread_num):
     thread_list.append(t)
     # t.setDaemon(True)   # 把子线程设置为守护线程，必须在start()之前设置
     t.start()
-logging.info(threading.active_count(), "个线程已启动")
+logging.info("%d个线程已启动", threading.active_count())
 for thread in thread_list:
     thread.join()
 logging.info("all thread finished")
