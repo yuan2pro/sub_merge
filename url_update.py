@@ -73,7 +73,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
         # # 切换代理
         # if "github" in url:
         #     url = url.replace("githubusercontent.com","fastgit.org")
-        url_quote = urllib.parse.quote(url, safe='')
+        url_quote = urllib.parse.quote(url.strip(), safe='')
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + \
                         url_quote + '&list=true&fdn=true&emoji=true'
@@ -97,7 +97,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
             # 检测节点乱码
             try:
                 text.encode('utf-8')
-                yaml.full_load(text)
+                yaml.safe_load(text)
             except Exception:
                 print("乱码:" + url)
                 continue
