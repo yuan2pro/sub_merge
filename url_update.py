@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
 import json
+import logging
 import urllib.parse
 from datetime import datetime, timedelta
 
 import requests
 import yaml
 from requests.adapters import HTTPAdapter
+
+# 配置日志记录器
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 文件路径定义
 sub_list_json = './sub_list.json'
@@ -85,26 +89,29 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
             # 如果解析出错，将原始链接内容拷贝下来
             text = resp.text
             if 'No nodes were found!' in text:
-                print(url + " No nodes were found!")
+                logging.info(url + " No nodes were found!")
                 continue
             # 如果是包含chacha20-poly1305跳过
             if 'chacha20-poly1305' in text:
+                logging.info(url + " chacha20-poly1305!")
                 continue
             if '#' in text:
+                logging.info(url + " #")
                 continue
             if 'The following link' in text:
+                logging.info(url + " The following link")
                 continue
             # 检测节点乱码
             try:
                 text.encode('utf-8')
                 yaml.safe_load(text)
-            except Exception:
-                print("乱码:" + url)
+            except Exception as e:
+                logging.error("url:{}, error:{}", url, str(e))
                 continue
             avaliable_url.append(url)
         except Exception as err:
             # 链接有问题，直接返回原始错误
-            print('网络错误，检查订阅转换服务器是否失效:' + '\n' + converted_url + '\n' +
+            logging.error('网络错误，检查订阅转换服务器是否失效:' + '\n' + converted_url + '\n' +
                   str(err))
             continue
     return avaliable_url
@@ -112,13 +119,13 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
 
 class update_url():
 
-    def update_main(update_enable_list=[0, 25, 43, 54, 57]):
+    def update_main(update_enable_list=[0, 7, 25, 43, 54, 57]):
         if len(update_enable_list) > 0:
             for id in update_enable_list:
                 status = update_url.update(id)
                 update_url.update_write(id, status[1], status[1])
         else:
-            print('Don\'t need to be updated.')
+            logging.info('Don\'t need to be updated.')
 
     def update_write(id, status, updated_url):
         nid = id
@@ -128,14 +135,14 @@ class update_url():
                 break
         if status == 404:
             raw_list[nid]['enabled'] = False
-            print(f'Id {id} URL NOT FOUND')
+            logging.info(f'Id {id} URL NOT FOUND')
         else:
             raw_list[nid]['enabled'] = True
             if updated_url != raw_list[nid]['url']:
                 raw_list[nid]['url'] = updated_url
-                print(f'Id {id} URL 更新至 : {updated_url}')
+                logging.info(f'Id {id} URL 更新至 : {updated_url}')
             else:
-                print(f'Id {id} URL 无可用更新')
+                logging.info(f'Id {id} URL 无可用更新')
 
     def update(id):
         if id == 0:
@@ -147,6 +154,18 @@ class update_url():
             end_url = 'clash.yml'
             # 修改字符串中的某一位字符 https://www.zhihu.com/question/31800070/answer/53345749
             url_update = front_url + yesterday + end_url
+            if check_url(url_update):
+                return [0, url_update]
+            else:
+                return [0, 404]
+            
+        elif id == 7:
+            # remarks: https://freenode.openrunner.net/
+            # today = datetime.today().strftime('%m%d')
+            # 得到当天一天 https://freenode.openrunner.net/uploads/20231123-clash.yaml
+            today = datetime.today().strftime('%Y%m%d')
+            front_url = 'https://freenode.openrunner.net/uploads/today-clash.yaml'
+            url_update = front_url.replace("today", today)
             if check_url(url_update):
                 return [0, url_update]
             else:
@@ -198,7 +217,7 @@ class update_url():
                 url_update = '|'.join(url_update_array)
                 return [54, url_update]
             except Exception as err:
-                print(str(err))
+                logging.error(str(err))
                 return [54, 404]
 
         elif id == 57:

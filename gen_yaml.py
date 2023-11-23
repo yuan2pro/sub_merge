@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import logging
 import random
 import re
 import threading
@@ -11,6 +12,10 @@ import requests
 import yaml
 from ping3 import ping, verbose_ping
 from requests.adapters import HTTPAdapter
+
+# 配置日志记录器
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 url_file = "./sub/url.txt"
 server_host = 'http://127.0.0.1:25500'
@@ -77,10 +82,10 @@ def run(index):
                 text.encode('utf-8')
                 yaml_text = yaml.full_load(text)
             except Exception as e:
-                print(str(index) + " " + str(e))
+                logging.error(str(index) + " " + str(e))
                 break
             if 'No nodes were found!' in text:
-                print(url + " No nodes were found!")
+                logging.info(url + " No nodes were found!")
                 break
             if 'The following link' in text:
                 error_text.append(text)
@@ -89,11 +94,11 @@ def run(index):
                     url = url.replace(err, "")
                 continue
             if '414 Request-URI Too Large' in text:
-                print(url, '414 Request-URI Too Large')
+                logging.info(url, '414 Request-URI Too Large')
                 break
         except Exception:
             # 链接有问题，直接返回原始错误
-            print(str(index) + ' 错误' + '\n')
+            logging.error(str(index) + ' 错误' + '\n')
             break
         finally:
             lock.release()
@@ -130,14 +135,14 @@ def run(index):
                     #     lock1.release()
                 lock1.acquire()
                 with open(yaml_file, "w", encoding="utf-8") as f:
-                    print(str(index)+" complete " + str(len(not_proxies)))
+                    logging.info(str(index)+" complete " + str(len(not_proxies)))
                     for p in not_proxies:
                         if p in yaml_text["proxies"]:
                             yaml_text["proxies"].remove(p)
                     f.write(yaml.dump(yaml_text))
                 lock1.release()
             except Exception as e:
-                print(str(e))
+                logging.error("error: {}", str(e))
         break
 
     # print(threading.current_thread().getName(), "✅")
@@ -149,10 +154,10 @@ for i in range(thread_num):
     thread_list.append(t)
     # t.setDaemon(True)   # 把子线程设置为守护线程，必须在start()之前设置
     t.start()
-print(threading.active_count(), "个线程已启动")
+logging.info(threading.active_count(), "个线程已启动")
 for thread in thread_list:
     thread.join()
-print("all thread finished")
+logging.info("all thread finished")
 
 # with open("./sub/exce_url.txt", 'w', encoding='utf-8') as f:
 #     f.write("\n".join(exce_url))
