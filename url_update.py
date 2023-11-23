@@ -95,9 +95,9 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
             if 'chacha20-poly1305' in text:
                 logging.info(url + " chacha20-poly1305!")
                 continue
-            if '#' in text:
-                logging.info(url + " #")
-                continue
+            # if '#' in text:
+            #     logging.info(url + " #")
+            #     continue
             if 'The following link' in text:
                 logging.info(url + " The following link")
                 continue
@@ -106,7 +106,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
                 text.encode('utf-8')
                 yaml.safe_load(text)
             except Exception as e:
-                logging.error("url:{}, error:{}", url, str(e))
+                logging.error("url:%s, error:%s", url, str(e))
                 continue
             avaliable_url.append(url)
         except Exception as err:
