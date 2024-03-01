@@ -16,22 +16,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 sub_list_json = './sub_list.json'
 url_file = "./sub/url.txt"
 
-# proxypool
-proxy_pool = ["https://raw.githubusercontent.com/snakem982/proxypool/main/nodelist.txt",
-              "https://raw.githubusercontent.com/snakem982/proxypool/main/proxies.txt"]
-
-
-def proxys_url():
-    proxys = []
-    for proxy in proxy_pool:
-        response = requests.get(proxy, timeout=2)
-        response.raise_for_status()  # 检查是否下载成功
-        # 将每行的URL以|分割，并连接起来
-        url_lines = response.text.split('\n')
-        proxys.extend(url_lines)
-    return proxys
-
-
 with open(sub_list_json, 'r', encoding='utf-8') as f:  # 载入订阅链接
     raw_list = json.load(f)
     f.close()
@@ -67,15 +51,7 @@ def write_url():
             raw_list[index]['enabled'] = False
         if not raw_list[index]['enabled']:
             false_list.append(str(raw_list[index]['id']))
-    proxy_pool = []
-    try:
-        proxy_pool = proxys_url()
-    except Exception:
-        logging.error("proxy_pool error")
-    if len(proxy_pool) > 0:
-        enabled_list.extend(proxy_pool)
-        enabled_list = list(set(enabled_list))
-    all_url = "|".join(enabled_list)
+    all_url = "|".join(list(set(enabled_list)))
     file = open(url_file, 'w', encoding='utf-8')
     file.write(all_url)
     file.close()
@@ -91,12 +67,14 @@ def write_url():
 
 def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
     # 使用远程订阅转换服务
-    server_host = 'https://sub.xeton.dev'
+    # server_host = 'https://sub.xeton.dev'
     # 使用本地订阅转换服务
     # 分割订阅链接
     urls = url_raw.split('|')
     avaliable_url = []
     for url in urls:
+        if not url.startswith("http"):
+            continue
         # 对url进行ASCII编码
         # # 切换代理
         # if "github" in url:
@@ -143,7 +121,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
 
 class update_url():
 
-    def update_main(update_enable_list=[0, 7, 25, 43, 54, 57]):
+    def update_main(update_enable_list=[0, 7, 25, 43, 57]):
         if len(update_enable_list) > 0:
             for id in update_enable_list:
                 status = update_url.update(id)
@@ -170,18 +148,21 @@ class update_url():
 
     def update(id):
         if id == 0:
-            # remarks: pojiezhiyuanjun/freev2, 将原链接更新至 https://raw.fastgit.org/pojiezhiyuanjun/freev2/master/%MM%(DD - 1).txt
-            # today = datetime.today().strftime('%m%d')
-            # 得到当前日期前一天 https://blog.csdn.net/wanghuafengc/article/details/42458721
-            yesterday = (datetime.today() + timedelta(-1)).strftime('%m%d')
-            front_url = 'https://raw.githubusercontent.com/pojiezhiyuanjun/freev2/master/'
-            end_url = 'clash.yml'
-            # 修改字符串中的某一位字符 https://www.zhihu.com/question/31800070/answer/53345749
-            url_update = front_url + yesterday + end_url
-            if check_url(url_update):
-                return [0, url_update]
-            else:
-                return [0, 404]
+            url_raw = ["https://raw.githubusercontent.com/snakem982/proxypool/main/nodelist.txt",
+                       "https://raw.githubusercontent.com/snakem982/proxypool/main/proxies.txt"]
+            url_array = []
+            try:
+                for url in url_raw:
+                    response = requests.get(url, timeout=2)
+                    response.raise_for_status()  # 检查是否下载成功
+                    # 将每行的URL以|分割，并连接起来
+                    url_lines = response.text.split('\n')
+                    url_array.extend(url_lines)
+                url_update = '|'.join(url_array)
+                return [id, url_update]
+            except Exception as err:
+                logging.error(str(err))
+                return [id, 404]
 
         elif id == 7:
             # remarks: https://freenode.openrunner.net/
@@ -191,9 +172,9 @@ class update_url():
             front_url = 'https://freenode.openrunner.net/uploads/today-clash.yaml'
             url_update = front_url.replace("today", today)
             if check_url(url_update):
-                return [0, url_update]
+                return [id, url_update]
             else:
-                return [0, 404]
+                return [id, 404]
 
         elif id == 43:
             # remarks: v2raydy/v2ray, 将原链接更新至 https://https://raw.githubusercontent.com/v2raydy/v2ray/main/%MM-%(DD - 1)%str%1.txt
@@ -206,9 +187,9 @@ class update_url():
             end_url = '.yaml'
             url_update = front_url + year + month + today + end_url
             if check_url(url_update):
-                return [43, url_update]
+                return [id, url_update]
             else:
-                return [43, 404]
+                return [id, 404]
 
         elif id == 25:
             today = datetime.today().strftime('%Y%m%d')
@@ -218,31 +199,9 @@ class update_url():
             end_url = '.yaml'
             url_update = front_url + year + month + today + end_url
             if check_url(url_update):
-                return [25, url_update]
+                return [id, url_update]
             else:
-                return [25, 404]
-
-        elif id == 54:
-            url_raw = [
-                "https://raw.githubusercontent.com/RenaLio/Mux2sub/main/urllist",
-                "https://raw.githubusercontent.com/RenaLio/Mux2sub/main/sub_list"
-            ]
-            url_update_array = []
-            try:
-                for url in url_raw:
-                    resp = requests.get(url, timeout=3)
-                    resp_content = resp.content.decode('utf-8')
-                    resp_content = resp_content.split('\n')
-                    for line in resp_content:
-                        if 'http' in line:
-                            url_update_array.append(line)
-                        else:
-                            continue
-                url_update = '|'.join(url_update_array)
-                return [54, url_update]
-            except Exception as err:
-                logging.error(str(err))
-                return [54, 404]
+                return [id, 404]
 
         elif id == 57:
             today = datetime.today().strftime('%Y%m%d')
@@ -252,32 +211,9 @@ class update_url():
             end_url = '.txt'
             url_update = front_url + year + month + today + end_url
             if check_url(url_update):
-                return [57, url_update]
+                return [id, url_update]
             else:
-                return [57, 404]
-
-        # elif id == 75:
-        #     url_raw = 'https://raw.githubusercontent.com/RiverFlowsInUUU/collectSub/main/sub/' + \
-        #               str(datetime.today().year) + '/' + str(datetime.today().month) + '/' + \
-        #               str(datetime.today().month) + '-' + \
-        #               str(datetime.today().day) + '.yaml'
-        #     if check_url(url_raw):
-        #         try:
-        #             resp = requests.get(url_raw, timeout=2)
-        #             resp_content = resp.content.decode('utf-8')
-        #             resp_content = resp_content.split('\n')
-        #             url_update_array = []
-        #             for line in resp_content:
-        #                 if '- ' in line:
-        #                     line = line.replace("- ", "")
-        #                     url_update_array.append(line)
-        #             url_update = '|'.join(url_update_array)
-        #             return [75, url_update]
-        #         except Exception as err:
-        #             print(str(err))
-        #             return [75, 404]
-        #     else:
-        #         return [75, 404]
+                return [id, 404]
 
 
 if __name__ == '__main__':

@@ -35,8 +35,8 @@ with open(url_file, 'r', encoding='utf-8') as f:  # 载入订阅链接
 
 url_list = urls.split("|")
 # 打乱顺序
-# random.shuffle(url_list)
-step = 10
+random.shuffle(url_list)
+step = 5
 index = 0
 length = len(url_list)
 error_text = []
@@ -80,7 +80,7 @@ def run(index):
             try:
                 text.encode('utf-8')
                 yaml_text = yaml.safe_load(text)
-            except Exception as e:
+            except Exception as err:
                 logging.error("%d error:%s", index, str(err))
                 break
             if 'No nodes were found!' in text:
