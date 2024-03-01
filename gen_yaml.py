@@ -4,13 +4,11 @@ import logging
 import random
 import re
 import threading
-import time
 import urllib.parse
-from concurrent.futures import ThreadPoolExecutor
 
 import requests
 import yaml
-from ping3 import ping, verbose_ping
+from ping3 import ping
 from requests.adapters import HTTPAdapter
 
 # 配置日志记录器
@@ -52,7 +50,6 @@ def run(index):
     yaml_file = "./sub/" + str(index) + ".yaml"
     cur = index * step
     i = (index + 1) * step
-    # print(cur, i, length)
     if i >= length:
         url = "|".join(url_list[cur:length])
     else:
@@ -68,7 +65,6 @@ def run(index):
         converted_url = server_host + '/sub?target=clash&url=' + url_quote + \
                         '&emoji=true&sort=true&fdn=true&list=true&exclude=' + \
                         exclude_quote
-        # print(converted_url)
         try:
             lock.acquire()
             s = requests.Session()
@@ -134,7 +130,7 @@ def run(index):
                     #     lock1.release()
                 lock1.acquire()
                 with open(yaml_file, "w", encoding="utf-8") as f:
-                    logging.info("%d complete:%d,", index, len(not_proxies))
+                    logging.info("%d complete:%d", index, len(not_proxies))
                     for p in not_proxies:
                         if p in yaml_text["proxies"]:
                             yaml_text["proxies"].remove(p)
@@ -143,8 +139,6 @@ def run(index):
             except Exception as e:
                 logging.error("error: {}", str(e))
         break
-
-    # print(threading.current_thread().getName(), "✅")
 
 
 thread_list = []
@@ -157,8 +151,3 @@ logging.info("%d个线程已启动", threading.active_count())
 for thread in thread_list:
     thread.join()
 logging.info("all thread finished")
-
-# with open("./sub/exce_url.txt", 'w', encoding='utf-8') as f:
-#     f.write("\n".join(exce_url))
-# with open("./sub/use_url.txt", 'w', encoding='utf-8') as f:
-#     f.write("\n".join(use_url))
