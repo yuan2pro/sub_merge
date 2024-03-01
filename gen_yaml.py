@@ -16,7 +16,6 @@ from requests.adapters import HTTPAdapter
 # 配置日志记录器
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
 url_file = "./sub/url.txt"
 server_host = 'http://127.0.0.1:25500'
 # server_host = 'http://192.168.100.1:25500'
@@ -37,7 +36,7 @@ with open(url_file, 'r', encoding='utf-8') as f:  # 载入订阅链接
 url_list = urls.split("|")
 # 打乱顺序
 # random.shuffle(url_list)
-step = 30
+step = 10
 index = 0
 length = len(url_list)
 error_text = []
@@ -67,8 +66,8 @@ def run(index):
         exclude_quote = urllib.parse.quote(exclude, safe='')
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + url_quote + \
-            '&emoji=true&sort=true&fdn=true&list=true&exclude=' + \
-            exclude_quote
+                        '&emoji=true&sort=true&fdn=true&list=true&exclude=' + \
+                        exclude_quote
         # print(converted_url)
         try:
             lock.acquire()

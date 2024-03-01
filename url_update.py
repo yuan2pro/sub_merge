@@ -16,6 +16,22 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 sub_list_json = './sub_list.json'
 url_file = "./sub/url.txt"
 
+# proxypool
+proxy_pool = ["https://raw.githubusercontent.com/snakem982/proxypool/main/nodelist.txt",
+              "https://raw.githubusercontent.com/snakem982/proxypool/main/proxies.txt"]
+
+
+def proxys_url():
+    proxys = []
+    for proxy in proxy_pool:
+        response = requests.get(proxy)
+        response.raise_for_status()  # 检查是否下载成功
+        # 将每行的URL以|分割，并连接起来
+        url_lines = response.text.split('\n')
+        proxys.append(url_lines)
+    return proxys
+
+
 with open(sub_list_json, 'r', encoding='utf-8') as f:  # 载入订阅链接
     raw_list = json.load(f)
     f.close()
@@ -51,7 +67,8 @@ def write_url():
             raw_list[index]['enabled'] = False
         if not raw_list[index]['enabled']:
             false_list.append(str(raw_list[index]['id']))
-    all_url = "|".join(enabled_list)
+    merged_list = list(set(enabled_list + proxys_url()))
+    all_url = "|".join(merged_list)
     file = open(url_file, 'w', encoding='utf-8')
     file.write(all_url)
     file.close()
@@ -112,7 +129,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
         except Exception as err:
             # 链接有问题，直接返回原始错误
             logging.error('网络错误，检查订阅转换服务器是否失效:' + '\n' + converted_url + '\n' +
-                  str(err))
+                          str(err))
             continue
     return avaliable_url
 
@@ -158,7 +175,7 @@ class update_url():
                 return [0, url_update]
             else:
                 return [0, 404]
-            
+
         elif id == 7:
             # remarks: https://freenode.openrunner.net/
             # today = datetime.today().strftime('%m%d')
@@ -231,7 +248,7 @@ class update_url():
                 return [57, url_update]
             else:
                 return [57, 404]
-            
+
         # elif id == 75:
         #     url_raw = 'https://raw.githubusercontent.com/RiverFlowsInUUU/collectSub/main/sub/' + \
         #               str(datetime.today().year) + '/' + str(datetime.today().month) + '/' + \
