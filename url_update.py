@@ -24,11 +24,11 @@ proxy_pool = ["https://raw.githubusercontent.com/snakem982/proxypool/main/nodeli
 def proxys_url():
     proxys = []
     for proxy in proxy_pool:
-        response = requests.get(proxy)
+        response = requests.get(proxy, timeout=2)
         response.raise_for_status()  # 检查是否下载成功
         # 将每行的URL以|分割，并连接起来
         url_lines = response.text.split('\n')
-        proxys.append(url_lines)
+        proxys.extend(url_lines)
     return proxys
 
 
@@ -67,8 +67,15 @@ def write_url():
             raw_list[index]['enabled'] = False
         if not raw_list[index]['enabled']:
             false_list.append(str(raw_list[index]['id']))
-    merged_list = list(set(enabled_list + proxys_url()))
-    all_url = "|".join(merged_list)
+    proxy_pool = []
+    try:
+        proxy_pool = proxys_url()
+    except Exception:
+        logging.error("proxy_pool error")
+    if len(proxy_pool) > 0:
+        enabled_list.extend(proxy_pool)
+        enabled_list = list(set(enabled_list))
+    all_url = "|".join(enabled_list)
     file = open(url_file, 'w', encoding='utf-8')
     file.write(all_url)
     file.close()
@@ -84,7 +91,7 @@ def write_url():
 
 def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
     # 使用远程订阅转换服务
-    # server_host = 'https://sub.xeton.dev'
+    server_host = 'https://sub.xeton.dev'
     # 使用本地订阅转换服务
     # 分割订阅链接
     urls = url_raw.split('|')
