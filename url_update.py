@@ -94,9 +94,9 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
                 logging.info(url + " No nodes were found!")
                 continue
             # 如果是包含chacha20-poly1305跳过
-            if 'chacha20-poly1305' in text:
-                logging.info(url + " chacha20-poly1305!")
-                continue
+            # if 'chacha20-poly1305' in text:
+            #     logging.info(url + " chacha20-poly1305!")
+            #     continue
             # if '#' in text:
             #     logging.info(url + " #")
             #     continue

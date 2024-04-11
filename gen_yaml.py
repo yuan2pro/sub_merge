@@ -100,19 +100,22 @@ def run(index):
         if yaml_text is not None:
             try:
                 proxies = yaml_text['proxies']
+                new_proxies = []
+                logging.info("%d Number of nodes at the beginning:%d", index, len(proxies))
                 for proxie in proxies:
                     server = proxie['server']
+                    cipher = proxie['cipher']
                     # TLS must be true with h2/ grpc network
                     if "network" in proxie.keys() and "tls" in proxie.keys():
                         network = proxie['network']
                         tls = proxie['tls']
                         if network == "h2" or network == "grpc":
                             if tls is False:
-                                proxies.remove(proxie)
+                                # proxies.remove(proxie)
                                 not_proxies.append(proxie)
                                 continue
-                    if server in exce_url:
-                        proxies.remove(proxie)
+                    if server in exce_url or cipher == "chacha20-poly1305":
+                        # proxies.remove(proxie)
                         not_proxies.append(proxie)
                         continue
                     try:
@@ -120,20 +123,24 @@ def run(index):
                         ping_res = ping(server, unit='ms')
                         exce_url.append(server)
                         if not ping_res:
-                            proxies.remove(proxie)
+                            # proxies.remove(proxie)
                             not_proxies.append(proxie)
+                            continue
                     except Exception:
-                        proxies.remove(proxie)
+                        # proxies.remove(proxie)
                         not_proxies.append(proxie)
                         continue
                     # finally:
                     #     lock1.release()
+                    new_proxies.append(proxie)
                 lock1.acquire()
                 with open(yaml_file, "w", encoding="utf-8") as f:
-                    logging.info("%d complete:%d", index, len(not_proxies))
-                    for p in not_proxies:
-                        if p in yaml_text["proxies"]:
-                            yaml_text["proxies"].remove(p)
+                    logging.info("%d Number of nodes after filtering:%d", index, len(new_proxies))
+                    logging.info("%d Number of discarded nodes:%d", index, len(not_proxies))
+                    yaml_text['proxies'] = new_proxies
+                    # for p in not_proxies:
+                    #     if p in yaml_text["proxies"]:
+                    #         yaml_text["proxies"].remove(p)
                     f.write(yaml.dump(yaml_text))
                 lock1.release()
             except Exception as e:
@@ -147,7 +154,7 @@ for i in range(thread_num):
     thread_list.append(t)
     # t.setDaemon(True)   # 把子线程设置为守护线程，必须在start()之前设置
     t.start()
-logging.info("%d个线程已启动", threading.active_count())
+logging.info("%d个线程已启动", threading.active_count() - 1)
 for thread in thread_list:
     thread.join()
 logging.info("all thread finished")
