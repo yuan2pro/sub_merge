@@ -104,7 +104,6 @@ def run(index):
                 logging.info("%d Number of nodes at the beginning:%d", index, len(proxies))
                 for proxie in proxies:
                     server = proxie['server']
-                    cipher = proxie['cipher']
                     # TLS must be true with h2/ grpc network
                     if "network" in proxie.keys() and "tls" in proxie.keys():
                         network = proxie['network']
@@ -114,7 +113,10 @@ def run(index):
                                 # proxies.remove(proxie)
                                 not_proxies.append(proxie)
                                 continue
-                    if server in exce_url or cipher == "chacha20-poly1305":
+                    if "cipher" in proxie.keys() and proxie['cipher'] == "chacha20-poly1305":
+                        not_proxies.append(proxie)
+                        continue
+                    if server in exce_url:
                         # proxies.remove(proxie)
                         not_proxies.append(proxie)
                         continue
