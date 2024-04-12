@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 url_file = "./sub/url.txt"
 server_host = 'http://127.0.0.1:25500'
 # server_host = 'http://192.168.100.1:25500'
-config_url = 'https://raw.githubusercontent.com/zzcabc/Rules/master/MyConvert/MyRules.ini'
+# config_url = 'https://raw.githubusercontent.com/zzcabc/Rules/master/MyConvert/MyRules.ini'
 
 include = ".*香港.*|.*HK.*|.*Hong Kong.*|.*🇭🇰.*"
 exclude = ".*测速.*|.*禁止.*|.*过期.*|.*剩余.*|.*CN.*|.*备用.*|:"
@@ -117,7 +117,7 @@ def run(index):
                             # proxies.remove(proxie)
                             not_proxies.append(proxie)
                             continue
-                        if server.startswith("127") or server.startswith("192") or server.startswith("10"):
+                        if server.startswith("127") or server.startswith("192") or server.startswith("10."):
                             not_proxies.append(proxie)
                             continue
                         # try:
