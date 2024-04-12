@@ -25,7 +25,7 @@ exclude = ".*测速.*|.*禁止.*|.*过期.*|.*剩余.*|.*CN.*|.*备用.*|:"
 reg = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 
 exce_url = ['1.1.1.1', '8.8.8.8', '0.0.0.0',
-            '127.0.0.1', 'google.com', 'localhost', 'github.com']
+            '127.0.0.1', '127.0.0.2', 'google.com', 'localhost', 'github.com']
 
 with open(url_file, 'r', encoding='utf-8') as f:  # 载入订阅链接
     urls = f.read()
@@ -41,7 +41,9 @@ error_text = []
 
 thread_num = length // step + 1
 lock = threading.Lock()
-lock1 = threading.Lock()
+
+
+# lock1 = threading.Lock()
 
 
 def run(index):
@@ -55,6 +57,7 @@ def run(index):
     else:
         url = "|".join(url_list[cur:i])
     not_proxies = []
+    new_proxies = []
     while True:
         # print(url)
         url_quote = urllib.parse.quote(url, safe='')
@@ -91,62 +94,65 @@ def run(index):
             if '414 Request-URI Too Large' in text:
                 logging.info(url, '414 Request-URI Too Large')
                 break
+            if yaml_text is not None:
+                try:
+                    proxies = yaml_text['proxies']
+                    logging.info("%d Number of nodes at the beginning:%d", index, len(proxies))
+                    for proxie in proxies:
+                        server = proxie['server']
+                        # TLS must be true with h2/ grpc network
+                        if "network" in proxie.keys() and "tls" in proxie.keys():
+                            network = proxie['network']
+                            tls = proxie['tls']
+                            if network == "h2" or network == "grpc":
+                                if tls is False:
+                                    # proxies.remove(proxie)
+                                    not_proxies.append(proxie)
+                                    continue
+                        if "cipher" in proxie.keys() and proxie['cipher'] == "chacha20-poly1305":
+                            not_proxies.append(proxie)
+                            continue
+                        if server in exce_url:
+                            # proxies.remove(proxie)
+                            not_proxies.append(proxie)
+                            continue
+                        if server.startswith("127") or server.startswith("192") or server.startswith("10"):
+                            not_proxies.append(proxie)
+                            continue
+                        try:
+                            # verbose_ping(server, count=1)
+                            ping_res = ping(server, unit='ms')
+                            exce_url.append(server)
+                            if not ping_res:
+                                # proxies.remove(proxie)
+                                not_proxies.append(proxie)
+                                continue
+                        except Exception as e:
+                            logging.error("error: {}", str(e))
+                            # proxies.remove(proxie)
+                            not_proxies.append(proxie)
+                            continue
+                        # finally:
+                        #     lock1.release()
+                        new_proxies.append(proxie)
+                    # lock1.acquire()
+                    with open(yaml_file, "w", encoding="utf-8") as f:
+                        logging.info("%d Number of nodes after filtering:%d", index, len(new_proxies))
+                        logging.info("%d Number of discarded nodes:%d", index, len(not_proxies))
+                        yaml_text['proxies'] = new_proxies
+                        # for p in not_proxies:
+                        #     if p in yaml_text["proxies"]:
+                        #         yaml_text["proxies"].remove(p)
+                        f.write(yaml.dump(yaml_text))
+                    # lock1.release()
+                except Exception as e:
+                    logging.error("error: {}", str(e))
         except Exception as err:
             # 链接有问题，直接返回原始错误
             logging.error("%d error:%s", index, str(err))
             break
         finally:
             lock.release()
-        if yaml_text is not None:
-            try:
-                proxies = yaml_text['proxies']
-                new_proxies = []
-                logging.info("%d Number of nodes at the beginning:%d", index, len(proxies))
-                for proxie in proxies:
-                    server = proxie['server']
-                    # TLS must be true with h2/ grpc network
-                    if "network" in proxie.keys() and "tls" in proxie.keys():
-                        network = proxie['network']
-                        tls = proxie['tls']
-                        if network == "h2" or network == "grpc":
-                            if tls is False:
-                                # proxies.remove(proxie)
-                                not_proxies.append(proxie)
-                                continue
-                    if "cipher" in proxie.keys() and proxie['cipher'] == "chacha20-poly1305":
-                        not_proxies.append(proxie)
-                        continue
-                    if server in exce_url:
-                        # proxies.remove(proxie)
-                        not_proxies.append(proxie)
-                        continue
-                    try:
-                        # verbose_ping(server, count=1)
-                        ping_res = ping(server, unit='ms')
-                        exce_url.append(server)
-                        if not ping_res:
-                            # proxies.remove(proxie)
-                            not_proxies.append(proxie)
-                            continue
-                    except Exception:
-                        # proxies.remove(proxie)
-                        not_proxies.append(proxie)
-                        continue
-                    # finally:
-                    #     lock1.release()
-                    new_proxies.append(proxie)
-                lock1.acquire()
-                with open(yaml_file, "w", encoding="utf-8") as f:
-                    logging.info("%d Number of nodes after filtering:%d", index, len(new_proxies))
-                    logging.info("%d Number of discarded nodes:%d", index, len(not_proxies))
-                    yaml_text['proxies'] = new_proxies
-                    # for p in not_proxies:
-                    #     if p in yaml_text["proxies"]:
-                    #         yaml_text["proxies"].remove(p)
-                    f.write(yaml.dump(yaml_text))
-                lock1.release()
-            except Exception as e:
-                logging.error("error: {}", str(e))
         break
 
 
