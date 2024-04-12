@@ -69,7 +69,7 @@ def run(index):
                         '&emoji=true&sort=true&fdn=true&list=true&exclude=' + \
                         exclude_quote
         try:
-            lock.acquire()
+            #lock.acquire()
             s = requests.Session()
             s.mount('http://', HTTPAdapter(max_retries=5))
             s.mount('https://', HTTPAdapter(max_retries=5))
@@ -122,7 +122,7 @@ def run(index):
                         try:
                             # verbose_ping(server, count=1)
                             ping_res = ping(server, unit='ms')
-                            exce_url.append(server)
+                            #exce_url.append(server)
                             if not ping_res:
                                 # proxies.remove(proxie)
                                 not_proxies.append(proxie)
@@ -151,8 +151,8 @@ def run(index):
             # 链接有问题，直接返回原始错误
             logging.error("%d error:%s", index, str(err))
             break
-        finally:
-            lock.release()
+        #finally:
+            #lock.release()
         break
 
 
