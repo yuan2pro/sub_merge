@@ -120,6 +120,9 @@ def run(index):
                         if server.startswith("127") or server.startswith("192") or server.startswith("10."):
                             not_proxies.append(proxie)
                             continue
+                        if "uuid" in proxie.keys() and len(proxie['uuid']) != 36:
+                            not_proxies.append(proxie)
+                            continue
                         # try:
                         #     # verbose_ping(server, count=1)
                         #     ping_res = ping(server, unit='ms')
