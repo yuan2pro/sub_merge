@@ -182,10 +182,13 @@ def run(index):
                             not_proxies.append(proxie)
                             continue
                         # add name emoji
-                        if not has_emoji(name):
-                            c_emoji = get_country_emoji_from_domain(server)
-                            if c_emoji is not None:
-                                proxie['name'] = c_emoji + name
+                        try:
+                            if not has_emoji(name):
+                                c_emoji = get_country_emoji_from_domain(server)
+                                if c_emoji is not None:
+                                    proxie['name'] = c_emoji + name
+                        except Exception:
+                            pass
                         # try:
                         #     # verbose_ping(server, count=1)
                         #     ping_res = ping(server, unit='ms')
