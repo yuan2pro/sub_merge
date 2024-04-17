@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
 import logging
-import random
-import re
 import threading
 import urllib.parse
 
+import emoji
 import requests
 import yaml
-from ping3 import ping
+import socket
 from requests.adapters import HTTPAdapter
 
 # 配置日志记录器
@@ -43,6 +42,64 @@ lock = threading.Lock()
 
 
 # lock1 = threading.Lock()
+def has_emoji(text):
+    return emoji.emoji_count(text) != 0
+
+
+def get_country_emoji_from_domain(domain):
+    def get_country_from_ip_api(ip_address):
+        try:
+            response = requests.get(f"http://ip-api.com/json/{ip_address}")
+            data = response.json()
+            if data['status'] == 'success':
+                return data.get("countryCode")
+            else:
+                return None
+        except requests.exceptions.RequestException:
+            return None
+
+    def get_country_emoji(country_code):
+        # 国家代码到Emoji的映射
+        country_emojis = {
+            "AU": "🇦🇺",  # Australia
+            "AT": "🇦🇹",  # Austria
+            "BE": "🇧🇪",  # Belgium
+            "CA": "🇨🇦",  # Canada
+            "DK": "🇩🇰",  # Denmark
+            "FI": "🇫🇮",  # Finland
+            "FR": "🇫🇷",  # France
+            "DE": "🇩🇪",  # Germany
+            "HK": "🇭🇰",  # Hong Kong
+            "IS": "🇮🇸",  # Iceland
+            "IE": "🇮🇪",  # Ireland
+            "IT": "🇮🇹",  # Italy
+            "JP": "🇯🇵",  # Japan
+            "KR": "🇰🇷",  # South Korea
+            "LU": "🇱🇺",  # Luxembourg
+            "NL": "🇳🇱",  # Netherlands
+            "NZ": "🇳🇿",  # New Zealand
+            "NO": "🇳🇴",  # Norway
+            "SG": "🇸🇬",  # Singapore
+            "ES": "🇪🇸",  # Spain
+            "SE": "🇸🇪",  # Sweden
+            "CH": "🇨🇭",  # Switzerland
+            "GB": "🇬🇧",  # United Kingdom
+            "US": "🇺🇸",  # United States
+            "CN": "🇨🇳",  # China
+            "TW": "🇹🇼"  # Taiwan
+        }
+        return country_emojis.get(country_code, "🌍")  # 未知国家的默认Emoji
+
+    try:
+        ip_address = socket.gethostbyname(domain)
+        country_code = get_country_from_ip_api(ip_address)
+        if country_code:
+            emoji = get_country_emoji(country_code)
+            return emoji
+        else:
+            return None
+    except socket.gaierror:
+        return None
 
 
 def run(index):
@@ -101,6 +158,7 @@ def run(index):
                     logging.info("%s Number of nodes:%d", url, len(proxies))
                     for proxie in proxies:
                         server = proxie['server']
+                        name = proxie['name']
                         # TLS must be true with h2/ grpc network
                         if "network" in proxie.keys() and "tls" in proxie.keys():
                             network = proxie['network']
@@ -123,6 +181,11 @@ def run(index):
                         if "uuid" in proxie.keys() and len(proxie['uuid']) != 36:
                             not_proxies.append(proxie)
                             continue
+                        # add name emoji
+                        if not has_emoji(name):
+                            c_emoji = get_country_emoji_from_domain(server)
+                            if c_emoji is not None:
+                                proxie['name'] = c_emoji + name
                         # try:
                         #     # verbose_ping(server, count=1)
                         #     ping_res = ping(server, unit='ms')
@@ -142,8 +205,8 @@ def run(index):
                     # lock1.acquire()
 
                     # lock1.release()
-                except Exception:
-                    logging.error("%s proxie error", url)
+                except Exception as e:
+                    logging.error("%s proxie error %s", url, e)
                     continue
         except Exception:
             # 链接有问题，直接返回原始错误
