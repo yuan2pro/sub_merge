@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 
 import logging
+import socket
 import threading
 import urllib.parse
 
 import emoji
 import requests
 import yaml
-import socket
 from requests.adapters import HTTPAdapter
+
+import geoip2.database
+
+# 载入 MaxMind 提供的数据库文件
+reader = geoip2.database.Reader('GeoLite2-Country.mmdb')
 
 # 配置日志记录器
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,8 +25,6 @@ server_host = 'http://127.0.0.1:25500'
 
 include = ".*香港.*|.*HK.*|.*Hong Kong.*|.*🇭🇰.*"
 exclude = ".*测速.*|.*禁止.*|.*过期.*|.*剩余.*|.*CN.*|.*备用.*|:"
-
-reg = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 
 exce_url = ['1.1.1.1', '8.8.8.8', '0.0.0.0',
             '127.0.0.1', '127.0.0.2', 'google.com', 'localhost', 'github.com']
@@ -41,65 +44,28 @@ thread_num = length // step + 1
 lock = threading.Lock()
 
 
-# lock1 = threading.Lock()
 def has_emoji(text):
     return emoji.emoji_count(text) != 0
 
 
-def get_country_emoji_from_domain(domain):
-    def get_country_from_ip_api(ip_address):
-        try:
-            response = requests.get(f"http://ip-api.com/json/{ip_address}")
-            data = response.json()
-            if data['status'] == 'success':
-                return data.get("countryCode")
-            else:
-                return None
-        except requests.exceptions.RequestException:
-            return None
-
-    def get_country_emoji(country_code):
-        # 国家代码到Emoji的映射
-        country_emojis = {
-            "AU": "🇦🇺",  # Australia
-            "AT": "🇦🇹",  # Austria
-            "BE": "🇧🇪",  # Belgium
-            "CA": "🇨🇦",  # Canada
-            "DK": "🇩🇰",  # Denmark
-            "FI": "🇫🇮",  # Finland
-            "FR": "🇫🇷",  # France
-            "DE": "🇩🇪",  # Germany
-            "HK": "🇭🇰",  # Hong Kong
-            "IS": "🇮🇸",  # Iceland
-            "IE": "🇮🇪",  # Ireland
-            "IT": "🇮🇹",  # Italy
-            "JP": "🇯🇵",  # Japan
-            "KR": "🇰🇷",  # South Korea
-            "LU": "🇱🇺",  # Luxembourg
-            "NL": "🇳🇱",  # Netherlands
-            "NZ": "🇳🇿",  # New Zealand
-            "NO": "🇳🇴",  # Norway
-            "SG": "🇸🇬",  # Singapore
-            "ES": "🇪🇸",  # Spain
-            "SE": "🇸🇪",  # Sweden
-            "CH": "🇨🇭",  # Switzerland
-            "GB": "🇬🇧",  # United Kingdom
-            "US": "🇺🇸",  # United States
-            "CN": "🇨🇳",  # China
-            "TW": "🇹🇼"  # Taiwan
-        }
-        return country_emojis.get(country_code, "🌍")  # 未知国家的默认Emoji
-
+def get_country_emoji(ip_address):
     try:
-        ip_address = socket.gethostbyname(domain)
-        country_code = get_country_from_ip_api(ip_address)
+        ip_address = socket.gethostbyname(ip_address)
+        # 查询 IP 地址的地理位置信息
+        response = reader.country(ip_address)
+        # 获取国家代码
+        country_code = response.country.iso_code
+        # 将国家代码转换为 emoji
         if country_code:
-            emoji = get_country_emoji(country_code)
+            # 国家代码转换为 emoji
+            emoji = chr(ord(country_code[0]) + 127397) + chr(ord(country_code[1]) + 127397)
+            logging.info(f"{ip_address} emoji is {emoji}")
             return emoji
         else:
-            return None
-    except socket.gaierror:
-        return None
+            logging.info(f"{ip_address} emoji is None")
+            return "🌍"
+    except Exception as e:
+        logging.error(f"get_country_emoji, {e.args[0]}")
 
 
 def run(index):
@@ -184,28 +150,16 @@ def run(index):
                         # add name emoji
                         try:
                             if not has_emoji(name):
-                                c_emoji = get_country_emoji_from_domain(server)
+                                c_emoji = get_country_emoji(server)
                                 if c_emoji is not None:
                                     proxie['name'] = c_emoji + name
+                                else:
+                                    not_proxies.append(proxie)
+                                    continue
                         except Exception:
-                            pass
-                        # try:
-                        #     # verbose_ping(server, count=1)
-                        #     ping_res = ping(server, unit='ms')
-                        #     # exce_url.append(server)
-                        #     if not ping_res:
-                        #         # proxies.remove(proxie)
-                        #         not_proxies.append(proxie)
-                        #         continue
-                        # except Exception as e:
-                        #     logging.error("error: {}", str(e))
-                        #     # proxies.remove(proxie)
-                        #     not_proxies.append(proxie)
-                        #     continue
-                        # finally:
-                        #     lock1.release()
+                            not_proxies.append(proxie)
+                            continue
                         new_proxies.append(proxie)
-                    # lock1.acquire()
 
                     # lock1.release()
                 except Exception as e:
