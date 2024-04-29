@@ -108,13 +108,12 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
                 text.encode('utf-8')
                 yaml.safe_load(text)
             except Exception as e:
-                logging.error("url:%s, error:%s", url, str(e))
+                logging.error(f"url:{url}, error:{e.args[0]}")
                 continue
             avaliable_url.append(url)
         except Exception as err:
             # 链接有问题，直接返回原始错误
-            logging.error('网络错误，检查订阅转换服务器是否失效:' + '\n' + converted_url + '\n' +
-                          str(err))
+            logging.error(f"{url}, error:{err.args[0]}")
             continue
     return avaliable_url
 
@@ -161,7 +160,7 @@ class update_url():
                 url_update = '|'.join(url_array)
                 return [id, url_update]
             except Exception as err:
-                logging.error(str(err))
+                logging.error(f"{err.args[0]}")
                 return [id, 404]
 
         elif id == 7:

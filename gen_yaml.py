@@ -19,8 +19,8 @@ reader = geoip2.database.Reader('GeoLite2-Country.mmdb')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 url_file = "./sub/url.txt"
-server_host = 'http://127.0.0.1:25500'
-# server_host = 'http://192.168.100.1:25500'
+# server_host = 'http://127.0.0.1:25500'
+server_host = 'http://192.168.100.1:25500'
 # config_url = 'https://raw.githubusercontent.com/zzcabc/Rules/master/MyConvert/MyRules.ini'
 
 include = ".*香港.*|.*HK.*|.*Hong Kong.*|.*🇭🇰.*"
@@ -179,7 +179,8 @@ def run(index):
                 logging.info("%d Number of nodes after filtering:%d", index, len(new_proxies))
                 logging.info("%d Number of discarded nodes:%d", index, len(not_proxies))
                 node_list['proxies'] = new_proxies
-                f.write(yaml.dump(node_list))
+                # f.write(yaml.dump(node_list))
+                yaml.safe_dump(node_list, f, allow_unicode=True)
         else:
             logging.error("%d is empty", index)
     except Exception as e:
