@@ -6,11 +6,10 @@ import threading
 import urllib.parse
 
 import emoji
+import geoip2.database
 import requests
 import yaml
 from requests.adapters import HTTPAdapter
-
-import geoip2.database
 
 # 载入 MaxMind 提供的数据库文件
 reader = geoip2.database.Reader('GeoLite2-Country.mmdb')
@@ -42,6 +41,9 @@ length = len(url_list)
 
 thread_num = length // step + 1
 lock = threading.Lock()
+
+# 过滤同样服务器端口
+servers = list()
 
 
 def has_emoji(text):
@@ -124,6 +126,13 @@ def run(index):
                     logging.info("%s Number of nodes:%d", url, len(proxies))
                     for proxie in proxies:
                         server = proxie['server']
+                        port = proxie['port']
+                        sp = server + ":" + str(port)
+                        if sp in servers:
+                            not_proxies.append(proxie)
+                            continue
+                        else:
+                            servers.append(sp)
                         name = proxie['name']
                         # TLS must be true with h2/ grpc network
                         if "network" in proxie.keys() and "tls" in proxie.keys():
@@ -152,7 +161,7 @@ def run(index):
                             if not has_emoji(name):
                                 c_emoji = get_country_emoji(server)
                                 if c_emoji is not None:
-                                    proxie['name'] = c_emoji + name
+                                    proxie['name'] = name + c_emoji
                                 else:
                                     not_proxies.append(proxie)
                                     continue
