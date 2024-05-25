@@ -160,8 +160,8 @@ def run(index):
                         if name not in node_name:
                             node_name.add(name)
                         else:
-                            not_proxies.add(proxie)
-                            continue
+                            name = name + len(node_name)
+                            proxie['name'] = name
                         # TLS must be true with h2/ grpc network
                         if "network" in proxie.keys() and "tls" in proxie.keys():
                             network = proxie['network']
