@@ -41,8 +41,9 @@ index = 0
 length = len(url_list)
 
 thread_num = length // step + 1
-# lock = threading.Lock()
 
+
+# lock = threading.Lock()
 
 
 def has_emoji(text):
@@ -93,15 +94,15 @@ def run(index):
     yaml_file = "./sub/" + str(index) + ".yaml"
     cur = index * step
     i = (index + 1) * step
-    url_lists = []
     if i >= length:
         url_lists = url_list[cur:length]
     else:
         url_lists = url_list[cur:i]
-    not_proxies = []
+    not_proxies = set()
     new_proxies = []
-    servers = []
+    servers = set()
     node_list = {}
+    node_name = set()
     for url in url_lists:
         # print(url)
         url_quote = urllib.parse.quote(url, safe='')
@@ -147,15 +148,20 @@ def run(index):
                         port = proxie['port']
                         sp = server + ":" + str(port)
                         if not test_connection(server, port):
-                            servers.append(sp)
-                            not_proxies.append(proxie)
+                            servers.add(sp)
+                            not_proxies.add(proxie)
                             continue
                         if sp in servers:
-                            not_proxies.append(proxie)
+                            not_proxies.add(proxie)
                             continue
                         else:
-                            servers.append(sp)
+                            servers.add(sp)
                         name = proxie['name']
+                        if name not in node_name:
+                            node_name.add(name)
+                        else:
+                            not_proxies.add(proxie)
+                            continue
                         # TLS must be true with h2/ grpc network
                         if "network" in proxie.keys() and "tls" in proxie.keys():
                             network = proxie['network']
@@ -163,20 +169,20 @@ def run(index):
                             if network == "h2" or network == "grpc":
                                 if tls is False:
                                     # proxies.remove(proxie)
-                                    not_proxies.append(proxie)
+                                    not_proxies.add(proxie)
                                     continue
                         if "cipher" in proxie.keys() and proxie['cipher'] == "chacha20-poly1305":
-                            not_proxies.append(proxie)
+                            not_proxies.add(proxie)
                             continue
                         if server in exce_url:
                             # proxies.remove(proxie)
-                            not_proxies.append(proxie)
+                            not_proxies.add(proxie)
                             continue
                         if server.startswith("127") or server.startswith("192") or server.startswith("10."):
-                            not_proxies.append(proxie)
+                            not_proxies.add(proxie)
                             continue
                         if "uuid" in proxie.keys() and len(proxie['uuid']) != 36:
-                            not_proxies.append(proxie)
+                            not_proxies.add(proxie)
                             continue
                         # add name emoji
                         try:
@@ -185,10 +191,10 @@ def run(index):
                                 if c_emoji is not None:
                                     proxie['name'] = name + c_emoji
                                 else:
-                                    not_proxies.append(proxie)
+                                    not_proxies.add(proxie)
                                     continue
                         except Exception:
-                            not_proxies.append(proxie)
+                            not_proxies.add(proxie)
                             continue
                         new_proxies.append(proxie)
 
