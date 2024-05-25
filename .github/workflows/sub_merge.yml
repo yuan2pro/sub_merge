@@ -17,6 +17,13 @@ jobs:
         with:
           python-version: "3.11"
           check-latest: true
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.21'
+          check-latest: true
+
       - name: load cache
         uses: actions/cache@v3
         with:
@@ -26,6 +33,10 @@ jobs:
             ${{ runner.os }}-pip-
       - name: set timezone
         run: sudo timedatectl set-timezone 'Asia/Shanghai'
+
+      - name: Save current directory
+        run: echo "CURRENT_DIR=$(pwd)" >> $GITHUB_ENV
+
       - name: install dependencies
         run: |
           pip install -r ./requirements.txt
@@ -42,8 +53,30 @@ jobs:
           python ./url_update.py
           python ./gen_yaml.py
 
+      - name: Checkout clash2singbox repository
+        uses: actions/checkout@v2
+        with:
+          repository: yuan2pro/clash2singbox  # 替换为目标仓库的所有者和仓库名
+          path: ./clash2singbox  # 下载到当前目录
+
+      - name: List files in current directory
+        run: ls  # 列出当前目录中的文件
+
+      - name: Build Go program
+        run: |
+          cd ./clash2singbox
+          go mod tidy
+          cp -f ${{ env.CURRENT_DIR }}/singbox.json ./config.json.template
+          go build -o clash2singbox ./main.go  # 根据需要调整路径
+          counter=1
+          for file in ${{ env.CURRENT_DIR }}/sub/*.yaml; do
+            ./clash2singbox -i "$file" -o "${{ env.CURRENT_DIR }}/sub/${counter}.config"
+            counter=$((counter + 1))
+          done
+
       - name: commit
         run: |
+          cd ${{ env.CURRENT_DIR }}
           Emoji=("🎉" "🤞" "✨" "🎁" "🎈" "🎄" "🎨" "💋" "🍓" "🍕" "🍉" "💐" "🌴" "🚀" "🛸" "🗽" "⛅" "🌈" "🔥" "⛄" "🐶" "🏅" "🦄" "🐤")
           MSG="${Emoji[$[$RANDOM % ${#Emoji[@]}]]} UPDATE TIME: $(date +%Y-%m-%d" "%H:%M:%S)"
           echo $MSG > README.md

@@ -111,34 +111,56 @@
     {
       "type": "urltest",
       "tag": "🤖 AI",
-      "outbounds": ["🌎 美洲", "🇪🇺 欧洲"],
+      "outbounds": [
+        "🌎 美洲",
+        "🇪🇺 欧洲"
+      ],
       "interrupt_exist_connections": false
     },
     {
       "type": "selector",
       "tag": "🍎 苹果",
-      "outbounds": ["direct", "🌎 美洲", "🇪🇺 欧洲"],
+      "outbounds": [
+        "direct",
+        "🌎 美洲",
+        "🇪🇺 欧洲"
+      ],
       "default": "direct",
       "interrupt_exist_connections": false
     },
     {
       "tag": "🌏 亚洲",
       "type": "urltest",
-      "outbounds": ["include: 🇭🇰|🇸🇬|🇹🇼|🇻🇳|🇮🇳|🇲🇴|🇯🇵|🇰🇷|🇯🇵|🇹🇭"]
+      "outbounds": [
+        "include: 🇭🇰|🇸🇬|🇹🇼|🇻🇳|🇮🇳|🇲🇴|🇯🇵|🇰🇷|🇯🇵|🇹🇭"
+      ]
     },
     {
       "tag": "🌎 美洲",
       "type": "urltest",
-      "outbounds": ["include: 🇺🇲|🇺🇸|🇨🇦|🇧🇷|🇲🇽|🇦🇺|🇳🇿"]
+      "outbounds": [
+        "include: 🇺🇲|🇺🇸|🇨🇦|🇧🇷|🇲🇽|🇦🇺|🇳🇿"
+      ]
     },
     {
       "tag": "🇪🇺 欧洲",
       "type": "urltest",
-      "outbounds": ["include: 🇪🇺|🇪🇸|🇫🇷|🇩🇪|🇬🇧|🇺🇦|🇷🇺|🇮🇹|🇱🇺|🇳🇴|🇮🇹|🇳🇱|🇧🇿|🇸🇪"]
+      "outbounds": [
+        "include: 🇪🇺|🇪🇸|🇫🇷|🇩🇪|🇬🇧|🇺🇦|🇷🇺|🇮🇹|🇱🇺|🇳🇴|🇮🇹|🇳🇱|🇧🇿|🇸🇪"
+      ]
     },
-    { "type": "direct", "tag": "direct" },
-    { "type": "block", "tag": "block" },
-    { "type": "dns", "tag": "dns-out" }
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    },
+    {
+      "type": "dns",
+      "tag": "dns-out"
+    }
   ],
   "route": {
     "rules": [
@@ -153,6 +175,10 @@
       {
         "clash_mode": "global",
         "outbound": "select"
+      },
+      {
+        "rule_set": "geoip-cn",
+        "outbound": "direct"
       },
       {
         "rule_set": "geoip-apple",
@@ -189,16 +215,33 @@
         "outbound": "select"
       },
       {
-        "rule_set": ["WeChat", "Bilibili"],
+        "rule_set": [
+          "geosite-adblock",
+          "geosite-adblockplus",
+          "geosite-adguard"
+        ],
+        "outbound": "block"
+      },
+      {
+        "rule_set": [
+          "WeChat",
+          "Bilibili"
+        ],
         "outbound": "direct"
       },
       {
-        "domain_suffix": ["depay.one", "orbstack.dev"],
+        "domain_suffix": [
+          "depay.one",
+          "orbstack.dev"
+        ],
         "outbound": "select"
       },
       {
         "domain": "accounts.google.com",
-        "domain_suffix": ["sourceforge.net", "fhjasokiwq.com"],
+        "domain_suffix": [
+          "sourceforge.net",
+          "fhjasokiwq.com"
+        ],
         "outbound": "select"
       },
       {
@@ -222,10 +265,6 @@
       {
         "rule_set": "Global",
         "outbound": "select"
-      },
-      {
-        "rule_set": "geoip-cn",
-        "outbound": "direct"
       },
       {
         "ip_is_private": true,
@@ -293,6 +332,27 @@
         "tag": "geoip-netflix",
         "format": "binary",
         "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/CHIZI-0618/v2ray-rules-dat/release/singbox_ip_rule_set/geoip-netflix.srs",
+        "download_detour": "direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-adblock",
+        "format": "binary",
+        "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/CHIZI-0618/v2ray-rules-dat/release/singbox_rule_set/geosite-adblock.srs",
+        "download_detour": "direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-adblockplus",
+        "format": "binary",
+        "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/CHIZI-0618/v2ray-rules-dat/release/singbox_rule_set/geosite-adblockplus.srs",
+        "download_detour": "direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-adguard",
+        "format": "binary",
+        "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/CHIZI-0618/v2ray-rules-dat/release/singbox_rule_set/geosite-adguard.srs",
         "download_detour": "direct"
       },
       {
