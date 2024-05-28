@@ -16,7 +16,7 @@ from requests.adapters import HTTPAdapter
 reader = geoip2.database.Reader('GeoLite2-Country.mmdb')
 
 # 配置日志记录器
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(lineno)d - %(message)s')
 
 url_file = "./sub/url.txt"
 server_host = 'http://127.0.0.1:25500'
@@ -61,13 +61,13 @@ def get_country_emoji(ip_address):
         if country_code:
             # 国家代码转换为 emoji
             emoji = chr(ord(country_code[0]) + 127397) + chr(ord(country_code[1]) + 127397)
-            logging.info(f"{ip_address} emoji is {emoji}")
+            logging.debug(f"{ip_address} emoji is {emoji}")
             return emoji
         else:
-            logging.info(f"{ip_address} emoji is None")
+            logging.debug(f"{ip_address} emoji is None")
             return "🌍"
     except Exception as e:
-        logging.error(f"{ip_address}, {e}")
+        logging.error(f"{e}")
 
 
 def test_connection(ip, port):
@@ -104,7 +104,6 @@ def run(index):
     node_list = {}
     node_name = set()
     for url in url_lists:
-        # print(url)
         url_quote = urllib.parse.quote(url, safe='')
         # config_quote = urllib.parse.quote(config_url, safe='')
         # include_quote = urllib.parse.quote(include, safe='')
@@ -125,7 +124,7 @@ def run(index):
                 text.encode('utf-8')
                 yaml_text = yaml.safe_load(text)
             except Exception as err:
-                logging.error("%s error:%s", url, str(err))
+                logging.error(f"{url} {err.args[0]}")
                 continue
             if 'No nodes were found!' in text:
                 logging.error("%s No nodes were found!", url)
@@ -140,19 +139,19 @@ def run(index):
                 logging.error("%s is None!", url)
                 continue
             if yaml_text is not None and 'proxies' in yaml_text.keys():
-                try:
-                    proxies = yaml_text['proxies']
-                    logging.info("%s Number of nodes:%d", url, len(proxies))
-                    for proxie in proxies:
+                proxies = yaml_text['proxies']
+                logging.info(f"{url};{len(proxies)}" )
+                for proxie in proxies:
+                    try:
                         server = proxie['server']
                         port = proxie['port']
-                        sp = server + ":" + str(port)
+                        sp = str(server) + ":" + str(port)
                         if not test_connection(server, port):
                             servers.add(sp)
-                            not_proxies.add(proxie)
+                            not_proxies.add(proxie['server'])
                             continue
                         if sp in servers:
-                            not_proxies.add(proxie)
+                            not_proxies.add(proxie['server'])
                             continue
                         else:
                             servers.add(sp)
@@ -168,43 +167,37 @@ def run(index):
                             tls = proxie['tls']
                             if network == "h2" or network == "grpc":
                                 if tls is False:
-                                    # proxies.remove(proxie)
-                                    not_proxies.add(proxie)
+                                    not_proxies.add(proxie['server'])
                                     continue
                         if "cipher" in proxie.keys() and proxie['cipher'] == "chacha20-poly1305":
-                            not_proxies.add(proxie)
+                            not_proxies.add(proxie['server'])
                             continue
                         if server in exce_url:
-                            # proxies.remove(proxie)
-                            not_proxies.add(proxie)
+                            not_proxies.add(proxie['server'])
                             continue
                         if server.startswith("127") or server.startswith("192") or server.startswith("10."):
-                            not_proxies.add(proxie)
+                            not_proxies.add(proxie['server'])
                             continue
                         if "uuid" in proxie.keys() and len(proxie['uuid']) != 36:
-                            not_proxies.add(proxie)
+                            not_proxies.add(proxie['server'])
                             continue
                         # add name emoji
-                        try:
-                            if not has_emoji(name):
-                                c_emoji = get_country_emoji(server)
-                                if c_emoji is not None:
-                                    proxie['name'] = name + c_emoji
-                                else:
-                                    not_proxies.add(proxie)
-                                    continue
-                        except Exception:
-                            not_proxies.add(proxie)
-                            continue
+                        if not has_emoji(name):
+                            c_emoji = get_country_emoji(server)
+                            if c_emoji is not None:
+                                proxie['name'] = name + str(c_emoji)
+                            else:
+                                not_proxies.add(proxie['server'])
+                                continue
                         new_proxies.append(proxie)
 
-                    # lock1.release()
-                except Exception as e:
-                    logging.error("%s proxie error %s", url, e)
-                    continue
-        except Exception:
+                    except Exception as e:
+                        not_proxies.add(proxie['server'])
+                        logging.error(f"proxie:{proxie} error:{e.args[0]}")
+                        continue
+        except Exception as err:
             # 链接有问题，直接返回原始错误
-            logging.error("%s url error", url)
+            logging.error(f"url:{url}  error:{err.args[0]}")
             continue
         # finally:
         # lock.release()
@@ -250,5 +243,4 @@ if __name__ == '__main__':
     # 等待所有进程结束
     for p in processes:
         p.join()
-
     logging.info("All processes have finished.")
