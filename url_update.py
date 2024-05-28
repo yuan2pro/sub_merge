@@ -120,7 +120,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
 
 class update_url():
 
-    def update_main(update_enable_list=[0, 7, 25, 43, 57]):
+    def update_main(update_enable_list=[0, 7, 25, 43]):
         if len(update_enable_list) > 0:
             for id in update_enable_list:
                 status = update_url.update(id)
@@ -196,18 +196,6 @@ class update_url():
             year = datetime.today().strftime('%Y') + '/'
             front_url = 'https://v2rayshare.com/wp-content/uploads/'
             end_url = '.yaml'
-            url_update = front_url + year + month + today + end_url
-            if check_url(url_update):
-                return [id, url_update]
-            else:
-                return [id, 404]
-
-        elif id == 57:
-            today = datetime.today().strftime('%Y%m%d')
-            month = datetime.today().strftime('%m') + '/'
-            year = datetime.today().strftime('%Y') + '/'
-            front_url = 'https://clashnode.com/wp-content/uploads/'
-            end_url = '.txt'
             url_update = front_url + year + month + today + end_url
             if check_url(url_update):
                 return [id, url_update]

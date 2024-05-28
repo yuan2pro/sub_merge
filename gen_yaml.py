@@ -36,7 +36,7 @@ with open(url_file, 'r', encoding='utf-8') as f:  # 载入订阅链接
 url_list = urls.split("|")
 # 打乱顺序
 random.shuffle(url_list)
-step = 30
+step = 20
 index = 0
 length = len(url_list)
 
@@ -159,7 +159,7 @@ def run(index):
                         if name not in node_name:
                             node_name.add(name)
                         else:
-                            name = name + len(node_name)
+                            name = name + str(len(node_name))
                             proxie['name'] = name
                         # TLS must be true with h2/ grpc network
                         if "network" in proxie.keys() and "tls" in proxie.keys():
