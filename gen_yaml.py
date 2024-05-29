@@ -141,7 +141,10 @@ def run(index):
             if yaml_text is not None and 'proxies' in yaml_text.keys():
                 proxies = yaml_text['proxies']
                 logging.info(f"{url};{len(proxies)}" )
+                i = 0
                 for proxie in proxies:
+                    if i > 30:
+                        break
                     try:
                         server = proxie['server']
                         port = proxie['port']
@@ -190,6 +193,7 @@ def run(index):
                                 not_proxies.add(proxie['server'])
                                 continue
                         new_proxies.append(proxie)
+                        i = i + 1
 
                     except Exception as e:
                         not_proxies.add(proxie['server'])
