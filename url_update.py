@@ -91,7 +91,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
             # 如果解析出错，将原始链接内容拷贝下来
             text = resp.text
             if 'No nodes were found!' in text:
-                logging.info(url + " No nodes were found!")
+                logging.info(f"{url} No nodes were found!")
                 continue
             # 如果是包含chacha20-poly1305跳过
             # if 'chacha20-poly1305' in text:
@@ -101,19 +101,19 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
             #     logging.info(url + " #")
             #     continue
             if 'The following link' in text:
-                logging.info(url + " The following link")
+                logging.error(f"{url} The following link")
                 continue
             # 检测节点乱码
-            try:
-                text.encode('utf-8')
-                yaml.safe_load(text)
-            except Exception as e:
-                logging.error(f"url:{url}, error:{e.args[0]}")
-                continue
+            # try:
+            #     text.encode('utf-8')
+            #     yaml.safe_load(text)
+            # except Exception as e:
+            #     logging.error(f"url:{url} error:{e.args[0]}")
+            #     continue
             avaliable_url.append(url)
         except Exception as err:
             # 链接有问题，直接返回原始错误
-            logging.error(f"{url}, error:{err.args[0]}")
+            logging.error(f"{url} error:{err.args[0]}")
             continue
     return avaliable_url
 
