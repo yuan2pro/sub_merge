@@ -110,7 +110,7 @@ def run(index):
         exclude_quote = urllib.parse.quote(exclude, safe='')
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + url_quote + \
-                        '&emoji=true&sort=true&fdn=true&list=true&exclude=' + \
+                        '&emoji=true&list=true&tfo=false&scv=true&fdn=true&sort=false&new_name=true&exclude=' + \
                         exclude_quote
         try:
             # lock.acquire()

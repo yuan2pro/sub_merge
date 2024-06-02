@@ -82,7 +82,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
         url_quote = urllib.parse.quote(url.strip(), safe='')
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + \
-                        url_quote + '&list=true&fdn=true&emoji=true'
+                        url_quote + '&emoji=true&list=true&tfo=false&scv=true&fdn=true&sort=false&new_name=true'
         try:
             s = requests.Session()
             s.mount('http://', HTTPAdapter(max_retries=5))
