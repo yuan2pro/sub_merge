@@ -143,7 +143,7 @@ def run(index):
                 logging.info(f"{url};{len(proxies)}" )
                 i = 0
                 for proxie in proxies:
-                    if i > 50:
+                    if i > 30:
                         break
                     try:
                         server = proxie['server']

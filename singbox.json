@@ -47,23 +47,15 @@
         "server": "dns_proxy"
       },
       {
-        "disable_cache": true,
+        "disable_cache": false,
         "rule_set": [
           "geosite-adblock",
           "geosite-adblockplus",
           "geosite-adguard",
-          "geosite-cn@ads"
+          "geosite-cn@ads",
+          "adrules_domainset"
         ],
         "server": "block"
-      },
-      {
-        "rule_set": "geosite-cn",
-        "server": "dns_direct"
-      },
-      {
-        "query_type": ["A", "AAAA"],
-        "rewrite_ttl": 1,
-        "server": "fakeip"
       },
       {
         "rule_set": "geosite-geolocation-!cn",
@@ -79,9 +71,18 @@
           "Netflix"
         ],
         "server": "dns_proxy"
+      },
+      {
+        "rule_set": "geosite-cn",
+        "server": "dns_direct"
+      },
+      {
+        "query_type": ["A", "AAAA"],
+        "rewrite_ttl": 1,
+        "server": "fakeip"
       }
     ],
-    "final": "dns_proxy",
+    "final": "dns_direct",
     "strategy": "prefer_ipv4",
     "independent_cache": true,
     "fakeip": {
@@ -186,6 +187,10 @@
         "outbound": "direct"
       },
       {
+        "rule_set": ["WeChat", "Bilibili"],
+        "outbound": "direct"
+      },
+      {
         "clash_mode": "global",
         "outbound": "select"
       },
@@ -219,16 +224,24 @@
           "geosite-adblock",
           "geosite-adblockplus",
           "geosite-adguard",
-          "geosite-cn@ads"
+          "geosite-cn@ads",
+          "adrules_domainset"
         ],
         "outbound": "block"
       },
       {
-        "rule_set": "geosite-cn",
-        "outbound": "direct"
+        "rule_set": [
+          "YouTube",
+          "Telegram",
+          "GFW",
+          "geosite-google",
+          "Twitter",
+          "Netflix"
+        ],
+        "outbound": "select"
       },
       {
-        "rule_set": ["WeChat", "Bilibili"],
+        "rule_set": "geosite-cn",
         "outbound": "direct"
       },
       {
@@ -248,17 +261,6 @@
       {
         "ip_is_private": true,
         "outbound": "direct"
-      },
-      {
-        "rule_set": [
-          "YouTube",
-          "Telegram",
-          "GFW",
-          "geosite-google",
-          "Twitter",
-          "Netflix"
-        ],
-        "outbound": "select"
       }
     ],
     "rule_set": [
@@ -380,9 +382,16 @@
         "format": "binary",
         "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/gfw.srs",
         "download_detour": "direct"
+      },
+      {
+        "type": "remote",
+        "tag": "adrules_domainset",
+        "format": "binary",
+        "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/adrules_domainset.srs",
+        "download_detour": "direct"
       }
     ],
-    "final": "select",
+    "final": "direct",
     "auto_detect_interface": true
   },
   "experimental": {
