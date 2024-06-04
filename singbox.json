@@ -8,12 +8,14 @@
     "servers": [
       {
         "tag": "dns_proxy",
-        "address": "tls://8.8.8.8",
+        "address": "https://1.1.1.1/dns-query",
+        "address_resolver": "dns_resolver",
+        "strategy": "ipv4_only",
         "detour": "select"
       },
       {
         "tag": "dns_direct",
-        "address": "https://223.5.5.5/dns-query",
+        "address": "h3://dns.alidns.com/dns-query",
         "address_resolver": "dns_resolver",
         "strategy": "ipv4_only",
         "detour": "direct"
@@ -45,6 +47,10 @@
       {
         "clash_mode": "global",
         "server": "dns_proxy"
+      },
+      {
+        "domain_suffix": ["cloudflare.com"],
+        "server": "dns_direct"
       },
       {
         "disable_cache": false,
@@ -197,6 +203,10 @@
       {
         "rule_set": "geosite-apple",
         "outbound": "🍎 苹果"
+      },
+      {
+        "domain_suffix": ["cloudflare.com"],
+        "outbound": "direct"
       },
       {
         "rule_set": "OpenAI",
