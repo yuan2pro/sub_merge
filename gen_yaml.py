@@ -142,6 +142,7 @@ def run(index):
                 proxies = yaml_text['proxies']
                 logging.info(f"{url};{len(proxies)}" )
                 i = 0
+                random.shuffle(proxies)
                 for proxie in proxies:
                     if i > 30:
                         break
