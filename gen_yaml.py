@@ -4,6 +4,7 @@ import logging
 import multiprocessing
 import random
 import socket
+import threading
 import urllib.parse
 
 import emoji
@@ -88,7 +89,7 @@ def test_connection(ip, port):
         sock.close()
 
 
-def run(index):
+def run(index, shared_list):
     # print(threading.current_thread().getName(), "开始工作")
     # for i in range(0, length, step):
     yaml_file = "./sub/" + str(index) + ".yaml"
@@ -110,8 +111,7 @@ def run(index):
         exclude_quote = urllib.parse.quote(exclude, safe='')
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + url_quote + \
-                        '&emoji=true&list=true&tfo=false&scv=true&fdn=true&sort=false&new_name=true&exclude=' + \
-                        exclude_quote
+                        '&emoji=true&list=true&tfo=true&scv=true&fdn=true&sort=false&new_name=true'
         try:
             # lock.acquire()
             s = requests.Session()
@@ -140,12 +140,9 @@ def run(index):
                 continue
             if yaml_text is not None and 'proxies' in yaml_text.keys():
                 proxies = yaml_text['proxies']
-                logging.info(f"{url};{len(proxies)}" )
-                i = 0
+                logging.info(f"{url}    {len(proxies)}")
                 random.shuffle(proxies)
                 for proxie in proxies:
-                    if i > 30:
-                        break
                     try:
                         server = proxie['server']
                         port = proxie['port']
@@ -194,8 +191,6 @@ def run(index):
                                 not_proxies.add(proxie['server'])
                                 continue
                         new_proxies.append(proxie)
-                        i = i + 1
-
                     except Exception as e:
                         not_proxies.add(proxie['server'])
                         logging.error(f"proxie:{proxie} error:{e.args[0]}")
@@ -210,12 +205,13 @@ def run(index):
     try:
         # lock.acquire()
         if new_proxies is not None:
-            with open(yaml_file, "w", encoding="utf-8") as f:
-                logging.info("%d Number of nodes after filtering:%d", index, len(new_proxies))
-                logging.info("%d Number of discarded nodes:%d", index, len(not_proxies))
-                node_list['proxies'] = new_proxies
-                # f.write(yaml.dump(node_list))
-                yaml.safe_dump(node_list, f, allow_unicode=True)
+            shared_list.extend(new_proxies)
+            logging.info("%d Number of nodes after filtering:%d", index, len(new_proxies))
+            logging.info("%d Number of discarded nodes:%d", index, len(not_proxies))
+            # with open(yaml_file, "w", encoding="utf-8") as f:
+            #     node_list['proxies'] = new_proxies
+            #     # f.write(yaml.dump(node_list))
+            #     yaml.safe_dump(node_list, f, allow_unicode=True)
         else:
             logging.error("%d is empty", index)
     except Exception as e:
@@ -225,27 +221,47 @@ def run(index):
     #     lock.release()
 
 
-# thread_list = []
-# for i in range(thread_num):
-#     t = threading.Thread(target=run, args=(i,))
-#     thread_list.append(t)
-#     # t.setDaemon(True)   # 把子线程设置为守护线程，必须在start()之前设置
-#     t.start()
-# logging.info("%d个线程已启动", threading.active_count() - 1)
-# for thread in thread_list:
-#     thread.join()
-# logging.info("all thread finished")
+def split_node(n, shared_list):
+    node_list = {}
+    yaml_file = "./sub/" + str(n) + ".yaml"
+    name_list = []
+    for list in shared_list:
+        name = list['name']
+        if name not in name_list:
+            name_list.append(name)
+        else:
+            name = name + str(len(name_list))
+            list['name'] = name
+    with open(yaml_file, "w", encoding="utf-8") as f:
+        node_list['proxies'] = shared_list
+        yaml.safe_dump(node_list, f, allow_unicode=True)
 
 
 if __name__ == '__main__':
     # 创建多个进程
     processes = []
+    manager = multiprocessing.Manager()
+    shared_list = manager.list()
     for i in range(thread_num):
-        p = multiprocessing.Process(target=run, args=(i,))
+        p = multiprocessing.Process(target=run, args=(i, shared_list,))
         processes.append(p)
         p.start()
     logging.info("多进程已启动")
     # 等待所有进程结束
     for p in processes:
         p.join()
+    random.shuffle(shared_list)
+    each_num = 256
+    thread_list = []
+    t_num = len(shared_list) // each_num + 1
+    for i in range(t_num):
+        if (i + 1) * each_num <= len(shared_list):
+            t = threading.Thread(target=split_node, args=(i, shared_list[i * each_num:i * each_num + each_num]))
+        else:
+            t = threading.Thread(target=split_node, args=(i, shared_list[i * each_num:]))
+        thread_list.append(t)
+        t.start()
+    logging.info("%d threads actived", threading.active_count() - 1)
+    for thread in thread_list:
+        thread.join()
     logging.info("All processes have finished.")
