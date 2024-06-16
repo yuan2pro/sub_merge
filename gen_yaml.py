@@ -25,7 +25,7 @@ server_host = 'http://127.0.0.1:25500'
 # config_url = 'https://raw.githubusercontent.com/zzcabc/Rules/master/MyConvert/MyRules.ini'
 
 include = ".*香港.*|.*HK.*|.*Hong Kong.*|.*🇭🇰.*"
-exclude = ".*测速.*|.*禁止.*|.*过期.*|.*剩余.*|.*CN.*|.*备用.*|:"
+exclude = ".*测速.*|.*禁止.*|.*过期.*|.*剩余.*|.*CN.*|.*备用.*|.*🇨🇳.*"
 
 exce_url = ['1.1.1.1', '8.8.8.8', '0.0.0.0',
             '127.0.0.1', '127.0.0.2', 'google.com', 'localhost', 'github.com']
@@ -111,7 +111,7 @@ def run(index, shared_list):
         exclude_quote = urllib.parse.quote(exclude, safe='')
         # 转换并获取订阅链接数据
         converted_url = server_host + '/sub?target=clash&url=' + url_quote + \
-                        '&emoji=true&list=true&tfo=true&scv=true&fdn=true&sort=false&new_name=true'
+                        '&emoji=true&list=true&tfo=true&scv=true&fdn=true&sort=false&new_name=true&exclude=' + exclude_quote
         try:
             # lock.acquire()
             s = requests.Session()
