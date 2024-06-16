@@ -48,19 +48,16 @@
         "server": "dns_proxy"
       },
       {
-        "domain_suffix": ["cloudflare.com", "jd.com"],
-        "server": "dns_direct"
-      },
-      {
         "disable_cache": false,
         "rule_set": [
           "geosite-adblock",
           "geosite-adblockplus",
           "geosite-adguard",
           "geosite-cn@ads",
-          "adrules_domainset"
+          "adrules_domainset",
+          "ads"
         ],
-        "server": "block"
+        "server": "dns_block"
       },
       {
         "rule_set": "geosite-geolocation-!cn",
@@ -73,12 +70,13 @@
           "GFW",
           "geosite-google",
           "Twitter",
-          "Netflix"
+          "Netflix",
+          "proxy"
         ],
         "server": "dns_proxy"
       },
       {
-        "rule_set": "geosite-cn",
+        "rule_set": ["geosite-cn", "cnip", "cn"],
         "server": "dns_direct"
       },
       {
@@ -130,6 +128,12 @@
   ],
   "outbounds": [
     {
+      "tag": "🚀 节点选择",
+      "type": "selector",
+      "outbounds": ["direct", "select", "🌏 亚洲", "🌎 美洲", "🇪🇺 欧洲"],
+      "default": "select"
+    },
+    {
       "type": "urltest",
       "tag": "🤖 AI",
       "outbounds": ["🌎 美洲", "🇪🇺 欧洲"],
@@ -140,7 +144,7 @@
     {
       "type": "selector",
       "tag": "🍎 苹果",
-      "outbounds": ["direct", "🌎 美洲", "🇪🇺 欧洲"],
+      "outbounds": ["direct", "🚀 节点选择", "🌎 美洲", "🇪🇺 欧洲"],
       "default": "direct",
       "interrupt_exist_connections": false
     },
@@ -167,6 +171,12 @@
       "url": "https://www.gstatic.com/generate_204",
       "interval": "30s",
       "interrupt_exist_connections": false
+    },
+    {
+      "tag": "🐟 漏网之鱼",
+      "type": "selector",
+      "outbounds": ["direct", "select", "🚀 节点选择"],
+      "default": "direct"
     },
     {
       "type": "direct",
@@ -197,27 +207,14 @@
       },
       {
         "clash_mode": "global",
-        "outbound": "select"
+        "outbound": "🚀 节点选择"
       },
       {
         "rule_set": "geosite-apple",
         "outbound": "🍎 苹果"
       },
       {
-        "domain_suffix": ["cloudflare.com", "jd.com"],
-        "outbound": "direct"
-      },
-      {
-        "rule_set": "OpenAI",
-        "domain_suffix": [
-          "copilot.microsoft.com",
-          "gemini.google.com",
-          "claude.ai",
-          "chatgpt.com",
-          "bing.com",
-          "oaistatic.com",
-          "oaiusercontent.com"
-        ],
+        "rule_set": ["OpenAI", "ai"],
         "outbound": "🤖 AI"
       },
       {
@@ -226,7 +223,7 @@
       },
       {
         "inbound": "socks-in",
-        "outbound": "select"
+        "outbound": "🚀 节点选择"
       },
       {
         "rule_set": [
@@ -234,7 +231,8 @@
           "geosite-adblockplus",
           "geosite-adguard",
           "geosite-cn@ads",
-          "adrules_domainset"
+          "adrules_domainset",
+          "ads"
         ],
         "outbound": "block"
       },
@@ -245,12 +243,13 @@
           "GFW",
           "geosite-google",
           "Twitter",
-          "Netflix"
+          "Netflix",
+          "proxy"
         ],
-        "outbound": "select"
+        "outbound": "🚀 节点选择"
       },
       {
-        "rule_set": "geosite-cn",
+        "rule_set": ["geosite-cn", "cnip", "cn"],
         "outbound": "direct"
       },
       {
@@ -265,7 +264,7 @@
             "invert": true
           }
         ],
-        "outbound": "select"
+        "outbound": "🚀 节点选择"
       },
       {
         "ip_is_private": true,
@@ -398,9 +397,39 @@
         "format": "binary",
         "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/adrules_domainset.srs",
         "download_detour": "direct"
+      },
+      {
+        "tag": "ads",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/DustinWin/ruleset_geodata/sing-box-ruleset/ads.srs"
+      },
+      {
+        "tag": "ai",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/DustinWin/ruleset_geodata/sing-box-ruleset/ai.srs"
+      },
+      {
+        "tag": "proxy",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/DustinWin/ruleset_geodata/sing-box-ruleset/proxy.srs"
+      },
+      {
+        "tag": "cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/DustinWin/ruleset_geodata/sing-box-ruleset/cn.srs"
+      },
+      {
+        "tag": "cnip",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/DustinWin/ruleset_geodata/sing-box-ruleset/cnip.srs"
       }
     ],
-    "final": "direct",
+    "final": "🐟 漏网之鱼",
     "auto_detect_interface": true
   },
   "experimental": {
