@@ -60,11 +60,8 @@
         "server": "dns_block"
       },
       {
-        "rule_set": "geosite-geolocation-!cn",
-        "server": "dns_proxy"
-      },
-      {
         "rule_set": [
+          "geosite-geolocation-!cn",
           "YouTube",
           "Telegram",
           "GFW",
@@ -129,14 +126,13 @@
   "outbounds": [
     {
       "tag": "🚀 节点选择",
-      "type": "selector",
-      "outbounds": ["direct", "select", "🌏 亚洲", "🌎 美洲", "🇪🇺 欧洲"],
-      "default": "select"
+      "type": "urltest",
+      "outbounds": ["🌏 亚洲", "🌎 美洲", "🌍 欧洲"]
     },
     {
       "type": "urltest",
       "tag": "🤖 AI",
-      "outbounds": ["🌎 美洲", "🇪🇺 欧洲"],
+      "outbounds": ["🌎 美洲", "🌍 欧洲"],
       "url": "https://www.gstatic.com/generate_204",
       "interval": "30s",
       "interrupt_exist_connections": false
@@ -144,14 +140,20 @@
     {
       "type": "selector",
       "tag": "🍎 苹果",
-      "outbounds": ["direct", "🚀 节点选择", "🌎 美洲", "🇪🇺 欧洲"],
-      "default": "direct",
+      "outbounds": [
+        "🎯 全球直连",
+        "🚀 节点选择",
+        "🌏 亚洲",
+        "🌎 美洲",
+        "🌍 欧洲"
+      ],
+      "default": "🎯 全球直连",
       "interrupt_exist_connections": false
     },
     {
       "tag": "🌏 亚洲",
       "type": "urltest",
-      "outbounds": ["include: 🇭🇰|🇸🇬|🇹🇼|🇻🇳|🇮🇳|🇲🇴|🇯🇵|🇰🇷|🇯🇵|🇹🇭"],
+      "outbounds": ["include: 🇭🇰|🇸🇬|🇹🇼|🇻🇳|🇮🇳|🇲🇴|🇰🇷|🇯🇵|🇹🇭"],
       "url": "https://www.gstatic.com/generate_204",
       "interval": "30s",
       "interrupt_exist_connections": false
@@ -165,7 +167,7 @@
       "interrupt_exist_connections": false
     },
     {
-      "tag": "🇪🇺 欧洲",
+      "tag": "🌍 欧洲",
       "type": "urltest",
       "outbounds": ["include: 🇪🇺|🇪🇸|🇫🇷|🇩🇪|🇬🇧|🇺🇦|🇷🇺|🇮🇹|🇱🇺|🇳🇴|🇮🇹|🇳🇱|🇧🇿|🇸🇪"],
       "url": "https://www.gstatic.com/generate_204",
@@ -174,6 +176,12 @@
     },
     {
       "tag": "🐟 漏网之鱼",
+      "type": "selector",
+      "outbounds": ["select", "🎯 全球直连", "🚀 节点选择"],
+      "default": "🎯 全球直连"
+    },
+    {
+      "tag": "🎯 全球直连",
       "type": "selector",
       "outbounds": ["direct", "select", "🚀 节点选择"],
       "default": "direct"
@@ -203,7 +211,7 @@
       },
       {
         "rule_set": ["WeChat", "Bilibili"],
-        "outbound": "direct"
+        "outbound": "🎯 全球直连"
       },
       {
         "clash_mode": "global",
@@ -250,7 +258,7 @@
       },
       {
         "rule_set": ["geosite-cn", "cnip", "cn"],
-        "outbound": "direct"
+        "outbound": "🎯 全球直连"
       },
       {
         "type": "logical",
@@ -268,7 +276,7 @@
       },
       {
         "ip_is_private": true,
-        "outbound": "direct"
+        "outbound": "🎯 全球直连"
       }
     ],
     "rule_set": [
