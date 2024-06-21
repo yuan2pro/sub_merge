@@ -126,15 +126,15 @@
   "outbounds": [
     {
       "tag": "🚀 节点选择",
-      "type": "urltest",
-      "outbounds": ["🌏 亚洲", "🌎 美洲", "🌍 欧洲"]
+      "type": "selector",
+      "outbounds": ["select", "🌏 亚洲", "🌎 美洲", "🌍 欧洲", "🌐 其他"],
+      "default": "select"
     },
     {
-      "type": "urltest",
+      "type": "selector",
       "tag": "🤖 AI",
-      "outbounds": ["🌎 美洲", "🌍 欧洲"],
-      "url": "https://www.gstatic.com/generate_204",
-      "interval": "30s",
+      "outbounds": ["🌎 美洲", "🌍 欧洲", "🌐 其他"],
+      "default": "🌎 美洲",
       "interrupt_exist_connections": false
     },
     {
@@ -145,7 +145,8 @@
         "🚀 节点选择",
         "🌏 亚洲",
         "🌎 美洲",
-        "🌍 欧洲"
+        "🌍 欧洲",
+        "🌐 其他"
       ],
       "default": "🎯 全球直连",
       "interrupt_exist_connections": false
@@ -175,15 +176,25 @@
       "interrupt_exist_connections": false
     },
     {
+      "tag": "🌐 其他",
+      "type": "urltest",
+      "outbounds": [
+        "exclude: 🇺🇲|🇺🇸|🇨🇦|🇧🇷|🇲🇽|🇦🇺|🇳🇿|🇭🇰|🇸🇬|🇹🇼|🇻🇳|🇮🇳|🇲🇴|🇰🇷|🇯🇵|🇹🇭|🇪🇺|🇪🇸|🇫🇷|🇩🇪|🇬🇧|🇺🇦|🇷🇺|🇮🇹|🇱🇺|🇳🇴|🇮🇹|🇳🇱|🇧🇿|🇸🇪"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "30s",
+      "interrupt_exist_connections": false
+    },
+    {
       "tag": "🐟 漏网之鱼",
       "type": "selector",
-      "outbounds": ["select", "🎯 全球直连", "🚀 节点选择"],
+      "outbounds": ["🎯 全球直连", "🚀 节点选择"],
       "default": "🎯 全球直连"
     },
     {
       "tag": "🎯 全球直连",
       "type": "selector",
-      "outbounds": ["direct", "select", "🚀 节点选择"],
+      "outbounds": ["direct", "select"],
       "default": "direct"
     },
     {
