@@ -148,7 +148,8 @@ class update_url():
     def update(id):
         if id == 0:
             url_raw = ["https://raw.githubusercontent.com/snakem982/proxypool/main/nodelist.txt",
-                       "https://raw.githubusercontent.com/snakem982/proxypool/main/proxies.txt"]
+                       "https://raw.githubusercontent.com/snakem982/proxypool/main/proxies.txt",
+                       "https://raw.githubusercontent.com/LalatinaHub/Mineral/master/result/subs"]
             url_array = []
             try:
                 for url in url_raw:
