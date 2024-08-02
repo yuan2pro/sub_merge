@@ -1,0 +1,3346 @@
+{
+    "dns": {
+        "fakeip": {
+            "enabled": true,
+            "inet4_range": "198.18.0.0/15",
+            "inet6_range": "fc00::/18"
+        },
+        "final": "dns_direct",
+        "independent_cache": true,
+        "rules": [
+            {
+                "outbound": "any",
+                "server": "dns_resolver"
+            },
+            {
+                "clash_mode": "direct",
+                "server": "dns_direct"
+            },
+            {
+                "clash_mode": "global",
+                "server": "dns_proxy"
+            },
+            {
+                "rule_set": [
+                    "geosite-geolocation-!cn"
+                ],
+                "server": "dns_proxy"
+            },
+            {
+                "query_type": [
+                    "A",
+                    "AAAA"
+                ],
+                "rewrite_ttl": 1,
+                "server": "dns_fakeip"
+            }
+        ],
+        "servers": [
+            {
+                "address": "https://8.8.8.8/dns-query",
+                "detour": "select",
+                "strategy": "prefer_ipv4",
+                "tag": "dns_proxy"
+            },
+            {
+                "address": "https://223.5.5.5/dns-query",
+                "address_resolver": "dns_resolver",
+                "detour": "direct",
+                "strategy": "prefer_ipv4",
+                "tag": "dns_direct"
+            },
+            {
+                "address": "rcode://refused",
+                "tag": "dns_block"
+            },
+            {
+                "address": "223.5.5.5",
+                "detour": "direct",
+                "strategy": "ipv4_only",
+                "tag": "dns_resolver"
+            },
+            {
+                "address": "fakeip",
+                "tag": "dns_fakeip"
+            }
+        ],
+        "strategy": "prefer_ipv4"
+    },
+    "experimental": {
+        "cache_file": {
+            "enabled": true
+        },
+        "clash_api": {
+            "default_mode": "rule",
+            "external_controller": "0.0.0.0:9090",
+            "external_ui": "metacubexd",
+            "external_ui_download_detour": "select",
+            "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
+            "secret": "password"
+        }
+    },
+    "inbounds": [
+        {
+            "auto_route": true,
+            "domain_strategy": "prefer_ipv4",
+            "endpoint_independent_nat": true,
+            "inet4_address": "172.19.0.1/30",
+            "inet6_address": "2001:0470:f9da:fdfa::1/64",
+            "mtu": 9000,
+            "sniff": true,
+            "stack": "mixed",
+            "strict_route": true,
+            "type": "tun"
+        }
+    ],
+    "log": {
+        "disabled": false,
+        "level": "info",
+        "timestamp": true
+    },
+    "ntp": {
+        "detour": "direct",
+        "enabled": true,
+        "interval": "30m0s",
+        "server": "time.apple.com",
+        "server_port": 123
+    },
+    "outbounds": [
+        {
+            "server": "141.101.115.99",
+            "server_port": 80,
+            "tag": "RELAY-141.101.115.99-8893🌍",
+            "transport": {
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "19428c44-85b3-4a7c-8bc4-b58396138322"
+        },
+        {
+            "password": "bcf96c9b-30bf-4ab0-bc28-6076218f2a14",
+            "server": "z9.gozargah.one",
+            "server_port": 443,
+            "tag": "🇺🇸 US-103.224.182.249-5201",
+            "tls": {
+                "enabled": true,
+                "server_name": "z9.gozargah.one",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "23.162.200.181",
+            "server_port": 9090,
+            "tag": "🇨🇦 CA-23.162.200.181-0648",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "pjdnqv",
+            "server": "15.181.201.80",
+            "server_port": 443,
+            "tag": "US_328🇺🇸",
+            "tls": {
+                "enabled": true,
+                "server_name": "15.181.201.80",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "4f2f34cc-d2e9-4ca8-a687-68efe5ad5959",
+            "server": "dejs.liangyuandiancloud.com",
+            "server_port": 443,
+            "tag": "SG_188🇸🇬",
+            "tls": {
+                "enabled": true,
+                "server_name": "dejs.liangyuandiancloud.com",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "g5MeD6Ft3CWlJId",
+            "server": "38.75.136.21",
+            "server_port": 5003,
+            "tag": "US_56🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "185.146.173.158",
+            "server_port": 443,
+            "tag": "5aa527b77a5444a9ac3708ed68db026b_@_💘 @v2ray_configs_pool 💘",
+            "tls": {
+                "enabled": true,
+                "server_name": "jahfkjha.cfd",
+                "insecure": true
+            },
+            "transport": {
+                "path": "/linkws",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "950db6aa-4926-4616-816e-ec0312dcb87b"
+        },
+        {
+            "server": "104.19.21.71",
+            "server_port": 2086,
+            "tag": "Relay_🏁ZZ-🇨🇦CA_335 | 4.66Mb",
+            "transport": {
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "server": "104.19.46.42",
+            "server_port": 2086,
+            "tag": "🇭🇰 @TG:JUZIBAIPIAO|深港隧道|流媒体解锁_102",
+            "transport": {
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "server": "sareikela.com",
+            "server_port": 443,
+            "tag": "RELAY-104.21.95.165-0501 | 18.912MB🌍",
+            "tls": {
+                "enabled": true,
+                "server_name": "sareikela.com",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "sareikela.com"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "03fcc618-b93d-6796-6aed-8a38c975d581"
+        },
+        {
+            "password": "f8f7aCzcPKbsF8p3",
+            "server": "46.183.184.61",
+            "server_port": 989,
+            "tag": "ChatGPT 🏁 ZZ_1010",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb"
+        },
+        {
+            "server": "104.19.58.175",
+            "server_port": 2052,
+            "tag": "🇨🇦 加拿大 154",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "cdn1.freegradely.xyz"
+                    ]
+                },
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "d6b6d982-d52f-465a-b988-85670b23f64a"
+        },
+        {
+            "server": "104.19.32.216",
+            "server_port": 2086,
+            "tag": "🇺🇸 美国 - 洛杉矶 - Psychz Networks - 36",
+            "transport": {
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "server": "104.19.45.31",
+            "server_port": 2086,
+            "tag": "Relay_🏁ZZ-🇨🇦CA_394 | 3.29Mb",
+            "transport": {
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "password": "KixLvKzwjekG00rm",
+            "server": "15.204.87.222",
+            "server_port": 8080,
+            "tag": "US_1149🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "pKEW8JPByTVTLtM",
+            "server": "38.114.114.143",
+            "server_port": 4444,
+            "tag": "ChatGPT 🏁 ZZ_121",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "mahilu.site",
+            "server_port": 2052,
+            "tag": "RELAY-104.21.82.39-2890🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "mahilu.site"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "7a737f41-b792-4260-94ff-3d864da67b80"
+        },
+        {
+            "server": "51.81.223.18",
+            "server_port": 443,
+            "tag": "🇺🇸 US-51.81.223.18-127",
+            "type": "vmess",
+            "alter_id": 32,
+            "security": "auto",
+            "uuid": "c0156451-4efb-45e2-84fc-8d315c4650db"
+        },
+        {
+            "password": "qj1Dz1CJmFQRhWr1SP80aA",
+            "server": "172.67.204.84",
+            "server_port": 443,
+            "tag": "🇺🇸 _US_美国-\u003e🇷🇺_RU_俄罗斯联邦_0@28",
+            "tls": {
+                "enabled": true,
+                "server_name": "cdn-21.gsmxreality.com",
+                "insecure": true
+            },
+            "transport": {
+                "type": "grpc",
+                "service_name": "443trojan"
+            },
+            "type": "trojan"
+        },
+        {
+            "server": "198.41.212.92",
+            "server_port": 443,
+            "tag": "RELAY-198.41.212.92-5210🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "www.998808.xyz"
+                    ]
+                },
+                "path": "/vbje5ytgwfgdrhe",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "bd014532-1f8b-4d33-b79d-50131d8d4633"
+        },
+        {
+            "password": "UkXRsXvR6buDMG2Y",
+            "server": "45.89.52.66",
+            "server_port": 9001,
+            "tag": "_418🇹🇷",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb"
+        },
+        {
+            "server": "505.outline-vpn.cloud",
+            "server_port": 443,
+            "tag": "🇺🇸 US 698 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "505.outline-vpn.cloud",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "kellie.makeup"
+                    ]
+                },
+                "path": "/linkvws",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "03fcc618-b93d-6796-6aed-8a38c975d581"
+        },
+        {
+            "server": "104.19.48.168",
+            "server_port": 2082,
+            "tag": "🇺🇸 US 211 → tg@nicevpn123",
+            "transport": {
+                "path": "/ws?ed=2048",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "753443e5-052c-4476-9cfa-3f434ff2f986"
+        },
+        {
+            "password": "cdBIDV42DCwnfIN",
+            "server": "38.114.114.69",
+            "server_port": 8118,
+            "tag": "🇺🇸 US-38.114.114.69-7739",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "XKFKl2rULjIp74",
+            "server": "145.239.6.202",
+            "server_port": 8008,
+            "tag": "_410🇬🇧",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "server": "104.21.1.28",
+            "server_port": 8880,
+            "tag": "🇺🇸 VMESS-未知\u003e美国-ChatGPT-TikTok-YouTube-104.21.1.28:8880",
+            "transport": {
+                "path": "/XSjeg73o6ZdsheahCb5JG",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "4b5e4565-322f-4223-a891-78a84f189726"
+        },
+        {
+            "server": "s1c.v2.v001sss.xyz",
+            "server_port": 2082,
+            "tag": "ChatGPT 🏁 ZZ_1414",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "s1c.v2.v001sss.xyz"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "112ac36f-3f53-4e26-8371-d25c028e1b9a"
+        },
+        {
+            "server": "203.30.191.191",
+            "server_port": 443,
+            "tag": "RELAY-203.30.191.191-1408🇧🇿",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "oplg1.cfcdn2.xyz"
+                    ]
+                },
+                "path": "/AUIKN8AU",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "c5a2d7b8-bf84-4f97-8577-b9b87f2baaf7"
+        },
+        {
+            "password": "e4FCWrgpkji3QY",
+            "server": "54.36.174.181",
+            "server_port": 9101,
+            "tag": "_407🇫🇷",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "server": "ip.saintink.eu.org",
+            "server_port": 443,
+            "tag": "RELAY-104.21.17.233-8095🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "ip.saintink.eu.org"
+                    ]
+                },
+                "path": "ua1.v2rayserv.com/vmess",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "b15ee8ec-0b0e-4ce2-b35c-f4be265ba217"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "23.154.136.106",
+            "server_port": 8888,
+            "tag": "ChatGPT 🏁 ZZ_1376",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "172.64.233.15",
+            "server_port": 2086,
+            "tag": "🇺🇸 美国 CloudFlare节点 24",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "ip2.1457230.xyz"
+                    ]
+                },
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "password": "qgpdyzHj8rZW9fDxxkUHRI",
+            "server": "217.196.103.206",
+            "server_port": 29312,
+            "tag": "_494🇷🇺",
+            "type": "shadowsocks",
+            "method": "chacha20-ietf-poly1305"
+        },
+        {
+            "password": "57edfecf-5694-4a34-8072-54a4f0636a62",
+            "server": "168.138.73.206",
+            "server_port": 40003,
+            "tag": "_532🇨🇦",
+            "tls": {
+                "enabled": true,
+                "server_name": "frontend.kuangbiaoyun.com",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "169.197.142.120",
+            "server_port": 3389,
+            "tag": "US_1123🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "pKEW8JPByTVTLtM",
+            "server": "23.162.200.181",
+            "server_port": 443,
+            "tag": "ZZ_388🇨🇦",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.16.39.33",
+            "server_port": 2082,
+            "tag": "🇺🇸 US 1247 → tg@nicevpn123",
+            "transport": {
+                "path": "/ws?ed=2048",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "f1c67059-9b50-4866-bc0c-a7288c1b920a"
+        },
+        {
+            "password": "KixLvKzwjekG00rm",
+            "server": "51.77.53.200",
+            "server_port": 8000,
+            "tag": "PL_80🇵🇱",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.21.27.139",
+            "server_port": 443,
+            "tag": "🇺🇸 US 1877 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "104.21.27.139",
+                "insecure": true
+            },
+            "transport": {
+                "path": "linkvws",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "03fcc618-b93d-6796-6aed-8a38c975d581"
+        },
+        {
+            "server": "172.111.38.233",
+            "server_port": 443,
+            "tag": "_22 | 8.35Mb🇺🇸",
+            "tls": {
+                "enabled": true,
+                "server_name": "wrmelmwxlf.gktevlrqznwqqozy.fabpfs66gizmnojhcvqxwl.kytrcfzqla87gvgvs6c7kjnrubuh.cc",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "muriel.makeup"
+                    ]
+                },
+                "path": "/linkvws",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "03fcc618-b93d-6796-6aed-8a38c975d581"
+        },
+        {
+            "server": "cf2.trojan.tel",
+            "server_port": 8880,
+            "tag": "US_731🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "cf2.trojan.tel"
+                    ]
+                },
+                "path": "/api/v3/download.getFile",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "b522ae04-4707-41df-81a8-17163c283675"
+        },
+        {
+            "password": "zDNVedRFPQexG9v",
+            "server": "38.86.135.31",
+            "server_port": 445,
+            "tag": "US_863🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "cdBIDV42DCwnfIN",
+            "server": "38.110.1.167",
+            "server_port": 8119,
+            "tag": "US_878🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "d0774966-fb63-4aca-9478-16c3f32be220",
+            "server": "sg.mjt000.com",
+            "server_port": 443,
+            "tag": "🇬🇧 GB 7 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "sg.mjt000.com",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "server": "172.64.233.37",
+            "server_port": 2086,
+            "tag": "RELAY-172.64.233.37-0866🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "ip2.1457230.xyz"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "password": "qYEN5HX4JKeVCdEC",
+            "server": "195.238.126.84",
+            "server_port": 9039,
+            "tag": "_311🇱🇹",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb"
+        },
+        {
+            "server": "172.67.199.187",
+            "server_port": 8080,
+            "tag": "RELAY-172.67.199.187-0486🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "oiictw.yydsii.com"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "b551aa22-22af-11ee-b8d8-f23c932eb68d"
+        },
+        {
+            "password": "KixLvKzwjekG00rm",
+            "server": "38.121.43.65",
+            "server_port": 8080,
+            "tag": "ChatGPT 🏁 ZZ_90",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "server": "cfcdn1.sanfencdn9.com",
+            "server_port": 2082,
+            "tag": "9c62341544ac48f78b4e86f90cf193c9_@_💘 @v2ray_configs_pool 💘",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "cfcdn1.sanfencdn9.com"
+                    ]
+                },
+                "path": "None",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "cd0eb936-9e1e-4730-989e-be43e7fcaf3e"
+        },
+        {
+            "server": "198.41.222.199",
+            "server_port": 2095,
+            "tag": "RELAY-198.41.222.199-8533🌍",
+            "transport": {
+                "path": "/hgcefomn",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "417d27fb-cb93-3bd8-9bf7-71cd91319821"
+        },
+        {
+            "server": "104.19.45.212",
+            "server_port": 2095,
+            "tag": "🇺🇸 VMESS-未知\u003e美国-NF解锁自制剧-104.19.45.212:2095",
+            "transport": {
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "7a737f41-b792-4260-94ff-3d864da67b80"
+        },
+        {
+            "server": "506.outline-vpn.cloud",
+            "server_port": 443,
+            "tag": "🇺🇸 US 910 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "506.outline-vpn.cloud",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "marien.motorcycles"
+                    ]
+                },
+                "path": "/linkvws",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "03fcc618-b93d-6796-6aed-8a38c975d581"
+        },
+        {
+            "server": "154.85.1.95",
+            "server_port": 41003,
+            "tag": "🇳🇱 \u003e🇳🇱 NL|Hs|0720|TG@FProxies| 12",
+            "tls": {
+                "enabled": true,
+                "server_name": "154.85.1.95",
+                "insecure": true
+            },
+            "transport": {
+                "path": "/path/120918182200",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "alter_id": 64,
+            "security": "auto",
+            "uuid": "d3133484-f2bf-4b0c-8d38-f8e645b65687"
+        },
+        {
+            "password": "085f3ab6-92fb-4c56-8ed5-6d0df11d8c0c",
+            "server": "de.liangyuandian.top",
+            "server_port": 443,
+            "tag": "SG_192🇸🇬",
+            "tls": {
+                "enabled": true,
+                "server_name": "de.liangyuandian.top",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "your_password",
+            "server": "43.218.139.54",
+            "server_port": 443,
+            "tag": "AU_13🇮🇩",
+            "tls": {
+                "enabled": true,
+                "server_name": "43.218.139.54",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "PCnnH6SQSnfoS27",
+            "server": "38.121.43.71",
+            "server_port": 8091,
+            "tag": "🇺🇸 US-38.121.43.71-5310",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "g5MeD6Ft3CWlJId",
+            "server": "149.202.82.172",
+            "server_port": 5003,
+            "tag": "FR_666🇫🇷",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "TEzjfAYq2IjtuoS",
+            "server": "38.114.114.69",
+            "server_port": 6697,
+            "tag": "🇺🇸 US-38.114.114.69-7129",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "KixLvKzwjekG00rm",
+            "server": "38.86.135.117",
+            "server_port": 8080,
+            "tag": "ChatGPT 🏁 ZZ_1078",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "38.121.43.71",
+            "server_port": 5000,
+            "tag": "_225🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "g5MeD6Ft3CWlJId",
+            "server": "23.150.152.24",
+            "server_port": 5004,
+            "tag": "ChatGPT 🏁 ZZ_267",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "162.159.135.42",
+            "server_port": 80,
+            "tag": "RELAY-162.159.135.42-3218🌍",
+            "transport": {
+                "path": "/shares",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "8b6dd709-4d4e-4b92-f542-54a676efbfe4"
+        },
+        {
+            "server": "172.67.74.112",
+            "server_port": 2086,
+            "tag": "🇺🇸 Relay_🇺🇸US-🇨🇦CA_1236",
+            "transport": {
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "password": "a1956156-b1d6-468e-b22f-59765172b07d",
+            "server": "hinet.mjt001.com",
+            "server_port": 443,
+            "tag": "🇬🇧 GB 31 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "hinet.mjt001.com",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "XKFKl2rULjIp74",
+            "server": "23.157.40.89",
+            "server_port": 8008,
+            "tag": "US_1113🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "172.67.229.19",
+            "server_port": 2086,
+            "tag": "🇺🇸 US 1124 → tg@nicevpn123",
+            "transport": {
+                "path": "/IOebhLMhl1CTbFHbL95myfRX2",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "58fe1542-5290-40ad-815a-77707a81afe5"
+        },
+        {
+            "password": "pKEW8JPByTVTLtM",
+            "server": "23.157.40.83",
+            "server_port": 4444,
+            "tag": "US_898🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "PCnnH6SQSnfoS27",
+            "server": "38.121.43.71",
+            "server_port": 8090,
+            "tag": "US_955🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.19.21.63",
+            "server_port": 2086,
+            "tag": "3443929ce7ae43efb46a93ef7841174b_@_💘 @v2ray_configs_pool 💘",
+            "transport": {
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "149.202.82.172",
+            "server_port": 3389,
+            "tag": "ChatGPT 🏁 ZZ_723",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "server": "tr2-vless.sshmax.xyz",
+            "server_port": 8443,
+            "tag": "🇺🇦 UA 16 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "tr2-vless.sshmax.xyz",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "tr2-vless.sshmax.xyz"
+                    ]
+                },
+                "path": "/vmess",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e89244f7-3636-4752-88ee-683387e76c91"
+        },
+        {
+            "server": "104.16.43.255",
+            "server_port": 2082,
+            "tag": "🇺🇸 US 1359 → tg@nicevpn123",
+            "transport": {
+                "path": "/ws?ed=2048",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "753443e5-052c-4476-9cfa-3f434ff2f986"
+        },
+        {
+            "server": "104.26.0.56",
+            "server_port": 2052,
+            "tag": "RELAY-104.26.0.56-1145🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "cdn1.freegradely.xyz"
+                    ]
+                },
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "d6b6d982-d52f-465a-b988-85670b23f64a"
+        },
+        {
+            "server": "172.67.171.43",
+            "server_port": 80,
+            "tag": "RELAY-172.67.171.43-0364🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "Uk2.vmess.site."
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "b79a6959-6feb-43ba-b3c7-f1afae9ea32c"
+        },
+        {
+            "server": "asgsdfvbxc_cdn.vbdf.lol",
+            "server_port": 2086,
+            "tag": "UM😈github.com/Ruk1ng001_-1417638242",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "asgsdfvbxc_cdn.vbdf.lol"
+                    ]
+                },
+                "path": "/?ed=1024",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "3711385d-9e52-497f-943b-18c6e74aa137"
+        },
+        {
+            "server": "162.55.62.193",
+            "server_port": 80,
+            "tag": "🇩🇪 DE-162.55.62.193-3832",
+            "transport": {
+                "path": "/telegram-id-@privatevpns",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "2aac77de-b3e4-4017-845c-ca1380f2e8d0"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "23.157.40.103",
+            "server_port": 5601,
+            "tag": "US_1012🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "cfcdn1.sanfencdn9.com",
+            "server_port": 8080,
+            "tag": "🇺🇸 Relay_🇺🇸US-🇺🇸US_228 |41.20Mb",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "cfcdn1.sanfencdn9.com"
+                    ]
+                },
+                "path": "/video/f8ZKTGaGoC/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "1dbf5c96-31cb-4fd7-8f63-ba8d2bdace34"
+        },
+        {
+            "password": "pKEW8JPByTVTLtM",
+            "server": "38.114.114.69",
+            "server_port": 4444,
+            "tag": "🇺🇸 US-38.114.114.69-7506",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "172.64.167.35",
+            "server_port": 2086,
+            "tag": "556654b4f01f48ae85bc3b2eb4a92757_@_💘 @v2ray_configs_pool 💘",
+            "transport": {
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "server": "104.19.45.204",
+            "server_port": 2095,
+            "tag": "🇺🇸 US 1208 → tg@nicevpn123",
+            "transport": {
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "7a737f41-b792-4260-94ff-3d864da67b80"
+        },
+        {
+            "password": "XKFKl2rULjIp74",
+            "server": "38.86.135.225",
+            "server_port": 8008,
+            "tag": "US_936🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.19.44.209",
+            "server_port": 80,
+            "tag": "🇺🇸 US 2000 → tg@nicevpn123",
+            "transport": {
+                "path": "/xn--mes53ddysu0o3gl",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "1cfaad16-d2ba-4c49-af07-d7b9f11f43d0"
+        },
+        {
+            "server": "www.sttlink.cc",
+            "server_port": 80,
+            "tag": "RELAY-172.67.147.168-7991🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "www.sttlink.cc"
+                    ]
+                },
+                "path": "/ASFHLASHFO",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "d3a24be8-c847-4c7f-ba32-8dd6e79e52b2"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "38.121.43.71",
+            "server_port": 5600,
+            "tag": "🇺🇸 US-38.121.43.71-5318",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "g5MeD6Ft3CWlJId",
+            "server": "15.204.87.222",
+            "server_port": 5003,
+            "tag": "🇺🇸 SS-美国-ChatGPT-TikTok-YouTube-15.204.87.222:5003",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "51.77.53.200",
+            "server_port": 5601,
+            "tag": "PL_725🇵🇱",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "154.47.21.44",
+            "server_port": 8099,
+            "tag": "US_1203🇳🇱",
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "fa1897db-1925-4c86-a495-939a959af900"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "69.50.93.28",
+            "server_port": 5000,
+            "tag": "ChatGPT 🏁 ZZ_256",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "202.78.162.5",
+            "server_port": 443,
+            "tag": "🇮🇳 IN 6 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "202.78.162.5",
+                "insecure": true
+            },
+            "transport": {
+                "path": "/@forwardv2ray",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "118287d2-e968-42e1-80d0-12fa2f5d38d6"
+        },
+        {
+            "server": "104.16.40.171",
+            "server_port": 2082,
+            "tag": "🇺🇸 US 1574 → tg@nicevpn123",
+            "transport": {
+                "path": "/ws?ed=2048",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "37d8c992-6170-40e9-89dd-e9a2647223f8"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "23.157.40.115",
+            "server_port": 5601,
+            "tag": "ChatGPT 🏁 ZZ_432",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "PCnnH6SQSnfoS27",
+            "server": "23.162.200.225",
+            "server_port": 8091,
+            "tag": "_25🇨🇦",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "server": "104.17.21.243",
+            "server_port": 443,
+            "tag": "RELAY-104.17.21.243-2008🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "free.frli.xyz"
+                    ]
+                },
+                "path": "/y475",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "alter_id": 1,
+            "security": "auto",
+            "uuid": "4cdb016f-f14e-30b3-97d6-453c741a5c80"
+        },
+        {
+            "password": "dU3DSNS8wYPXzEKw",
+            "server": "45.89.52.66",
+            "server_port": 9029,
+            "tag": "_437🇹🇷",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb",
+            "network": "tcp"
+        },
+        {
+            "password": "XKFKl2rULjIp74",
+            "server": "149.202.82.172",
+            "server_port": 8009,
+            "tag": "_415🇫🇷",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "password": "G!yBwPWH3Vao",
+            "server": "134.195.196.178",
+            "server_port": 808,
+            "tag": "_102🇨🇦",
+            "type": "shadowsocks",
+            "method": "chacha20-ietf-poly1305"
+        },
+        {
+            "server": "45.14.244.133",
+            "server_port": 2024,
+            "tag": "ChatGPT 🏁 ZZ_1417",
+            "transport": {
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "6ceb6456-6264-4e81-b504-4dadb1cd0a0b"
+        },
+        {
+            "server": "188.114.96.2",
+            "server_port": 443,
+            "tag": "Vauth - 139🌍",
+            "tls": {
+                "enabled": true,
+                "server_name": "obdii.cfd",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "obdii.cfd"
+                    ]
+                },
+                "path": "/linkws",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "05641cf5-58d2-4ba4-a9f1-b3cda0b1fb1d"
+        },
+        {
+            "password": "FoOiGlkAA9yPEGP",
+            "server": "23.162.200.181",
+            "server_port": 7307,
+            "tag": "_244🇨🇦",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "server": "104.19.44.33",
+            "server_port": 80,
+            "tag": "🇺🇸 US 2001 → tg@nicevpn123",
+            "transport": {
+                "path": "/xn--mes53ddysu0o3gl",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "1cfaad16-d2ba-4c49-af07-d7b9f11f43d0"
+        },
+        {
+            "server": "104.17.147.22",
+            "server_port": 8880,
+            "tag": "VM-WS-NA 🏴‍☠️ NA-104.17.147.22:8880",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "2d.irvn.debian.6.6.1b1.8.fxp.debian.org.speedtest.net.列列男事的事列上赛.abkon.cyou."
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "add2ffac-f376-416e-bd31-0db44d2049b3"
+        },
+        {
+            "server": "104.17.156.224",
+            "server_port": 2052,
+            "tag": "@v2ray_configs_pool 💘 30",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "in4.wish.ml"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "c286daa2-59de-455c-8de8-ec032b6ce2e8"
+        },
+        {
+            "password": "p9z5BVADH2YFs3MN",
+            "server": "5.188.181.201",
+            "server_port": 9040,
+            "tag": "🇪🇸 ES-5.188.181.201-0793 | 12.485MB",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb",
+            "network": "tcp"
+        },
+        {
+            "password": "0cdc54e5-c8e1-4350-a7b2-047e5f4c02f9",
+            "server": "uk.mjt000.com",
+            "server_port": 443,
+            "tag": "HK_104🇯🇵",
+            "tls": {
+                "enabled": true,
+                "server_name": "uk.mjt000.com",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "server": "104.16.39.80",
+            "server_port": 2082,
+            "tag": "🇺🇸 US 911 → tg@nicevpn123",
+            "transport": {
+                "path": "/ws?ed=2048",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "f1c67059-9b50-4866-bc0c-a7288c1b920a"
+        },
+        {
+            "password": "cdBIDV42DCwnfIN",
+            "server": "23.154.136.51",
+            "server_port": 8118,
+            "tag": "ZZ_1232🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "e4FCWrgpkji3QY",
+            "server": "23.157.40.83",
+            "server_port": 9102,
+            "tag": "US_1118🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "e4FCWrgpkji3QY",
+            "server": "38.86.135.117",
+            "server_port": 9101,
+            "tag": "US_1018🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "NvS8N4Vf8qAGPSCL",
+            "server": "80.92.204.106",
+            "server_port": 9046,
+            "tag": "DE_574🇩🇪",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb",
+            "network": "tcp"
+        },
+        {
+            "password": "PCnnH6SQSnfoS27",
+            "server": "38.114.114.69",
+            "server_port": 8090,
+            "tag": "🇺🇸 US-38.114.114.69-7254",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.16.68.38",
+            "server_port": 8080,
+            "tag": "disney_netflix_US 21🌍",
+            "transport": {
+                "path": "/linde06.indiavideo.sbs/linkws",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "edbb1059-1633-4271-b66e-ed4fba47a1bf"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "69.50.95.86",
+            "server_port": 5600,
+            "tag": "ChatGPT 🏁 ZZ_1032",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.16.39.79",
+            "server_port": 2082,
+            "tag": "🇺🇸 US 1236 → tg@nicevpn123",
+            "transport": {
+                "path": "/ws?ed=2048",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "f1c67059-9b50-4866-bc0c-a7288c1b920a"
+        },
+        {
+            "server": "104.19.47.250",
+            "server_port": 8080,
+            "tag": "RELAY-104.19.47.250-0547🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "oiictw.yydsii.com"
+                    ]
+                },
+                "path": "/?ed=2048\u0026Telegram🇨🇳 @WangCai2",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "b551aa22-22af-11ee-b8d8-f23c932eb68d"
+        },
+        {
+            "server": "104.16.39.40",
+            "server_port": 2082,
+            "tag": "🇺🇸 US 1117 → tg@nicevpn123",
+            "transport": {
+                "path": "/ws?ed=2048",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "f1c67059-9b50-4866-bc0c-a7288c1b920a"
+        },
+        {
+            "password": "telegram-id-privatevpns",
+            "server": "13.39.194.177",
+            "server_port": 22222,
+            "tag": "FR_588🇫🇷",
+            "tls": {
+                "enabled": true,
+                "server_name": "trojan.burgerip.co.uk",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "lGqs95QkFHo2NV",
+            "server": "38.86.135.31",
+            "server_port": 5499,
+            "tag": "US_176🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "irvideo.cfd",
+            "server_port": 443,
+            "tag": "🇫🇷 VMESS-法国-NF解锁自制剧-ChatGPT-TikTok-YouTube-irvideo.cfd:443",
+            "tls": {
+                "enabled": true,
+                "server_name": "irvideo.cfd",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "irvideo.cfd"
+                    ]
+                },
+                "path": "/linkws",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e537f2f5-2a0c-4f59-92c9-832ca6433bf3"
+        },
+        {
+            "password": "g5MeD6Ft3CWlJId",
+            "server": "23.157.40.83",
+            "server_port": 5004,
+            "tag": "_224🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "password": "TEzjfAYq2IjtuoS",
+            "server": "38.68.134.9",
+            "server_port": 6679,
+            "tag": "🇺🇸 US-38.68.134.9-6185",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "kDWvXYZoTBcGkC4",
+            "server": "38.121.43.71",
+            "server_port": 8882,
+            "tag": "US_194🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "lGqs95QkFHo2NV",
+            "server": "23.157.40.115",
+            "server_port": 5498,
+            "tag": "US_1005🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "38.68.134.9",
+            "server_port": 3389,
+            "tag": "_177🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "g5MeD6Ft3CWlJId",
+            "server": "38.68.134.9",
+            "server_port": 5003,
+            "tag": "_135🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.19.46.63",
+            "server_port": 2086,
+            "tag": "RELAY-104.19.46.63-0313 | 3.589MB🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "ip2.1457230.xyz"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "server": "38.72img.xyz",
+            "server_port": 443,
+            "tag": "🇦🇺 AU-103.224.212.211-5204",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "38.72img.xyz"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "81d93f62-15a2-4994-adb9-0b5d906aac7e"
+        },
+        {
+            "password": "v9443iEa9gWv",
+            "server": "104.16.100.23",
+            "server_port": 443,
+            "tag": "🇺🇸 US 510 → tg@nicevpn123",
+            "type": "shadowsocks",
+            "method": "aes-128-gcm",
+            "plugin": "v2ray-plugin",
+            "plugin_opts": "host=v1.fjdd.shop;mode=websocket"
+        },
+        {
+            "password": "a8bt9fY0QsLS6eLnXUe0Ym",
+            "server": "193.29.139.182",
+            "server_port": 8080,
+            "tag": "ChatGPT 🏁 ZZ_975",
+            "type": "shadowsocks",
+            "method": "chacha20-ietf-poly1305",
+            "network": "tcp"
+        },
+        {
+            "password": "G!yBwPWH3Vao",
+            "server": "134.195.196.178",
+            "server_port": 808,
+            "tag": "ChatGPT 🏁 ZZ_383",
+            "type": "shadowsocks",
+            "method": "chacha20-ietf-poly1305"
+        },
+        {
+            "server": "104.19.45.79",
+            "server_port": 2095,
+            "tag": "🇺🇸 US 735 → tg@nicevpn123",
+            "transport": {
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "7a737f41-b792-4260-94ff-3d864da67b80"
+        },
+        {
+            "password": "665c944d-047d-4659-80d5-3eaac70241a9",
+            "server": "139.162.158.172",
+            "server_port": 443,
+            "tag": "DE_627🇩🇪",
+            "tls": {
+                "enabled": true,
+                "server_name": "de2-full.privateip.net",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "ZJU29smXwp",
+            "server": "172.67.176.206",
+            "server_port": 2053,
+            "tag": "🇺🇸 _US_美国_5",
+            "tls": {
+                "enabled": true,
+                "server_name": "damn-mci-again-3.danesh-bonyan.Store",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "damn-mci-again-3.danesh-bonyan.Store"
+                    ]
+                },
+                "type": "ws"
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "H5S0hvcxRi#YLmgU",
+            "server": "38.107.226.146",
+            "server_port": 1230,
+            "tag": "_259🇺🇸",
+            "type": "shadowsocks",
+            "method": "chacha20-ietf-poly1305",
+            "network": "tcp"
+        },
+        {
+            "password": "your_password",
+            "server": "34.222.204.128",
+            "server_port": 443,
+            "tag": "US_333🇺🇸",
+            "tls": {
+                "enabled": true,
+                "server_name": "34.222.204.128",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "pKEW8JPByTVTLtM",
+            "server": "23.157.40.113",
+            "server_port": 4444,
+            "tag": "ChatGPT 🏁 ZZ_663",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "f8f7aCzcPKbsF8p3",
+            "server": "37.235.49.152",
+            "server_port": 989,
+            "tag": "_466🇮🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb"
+        },
+        {
+            "server": "104.19.45.56",
+            "server_port": 2095,
+            "tag": "🇺🇸 US 543 → tg@nicevpn123",
+            "transport": {
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "7a737f41-b792-4260-94ff-3d864da67b80"
+        },
+        {
+            "password": "cdBIDV42DCwnfIN",
+            "server": "38.75.137.105",
+            "server_port": 8119,
+            "tag": "US_133🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "cdBIDV42DCwnfIN",
+            "server": "38.110.1.167",
+            "server_port": 8118,
+            "tag": "US_876🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.19.45.238",
+            "server_port": 2082,
+            "tag": "🇺🇸 US 832 → tg@nicevpn123",
+            "transport": {
+                "path": "/ws?ed=2048",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "f1c67059-9b50-4866-bc0c-a7288c1b920a"
+        },
+        {
+            "server": "23.154.136.47",
+            "server_port": 22324,
+            "tag": "ChatGPT 🏁 ZZ_1398",
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "04621bae-ab36-11ec-b909-0242ac120002"
+        },
+        {
+            "password": "kDWvXYZoTBcGkC4",
+            "server": "54.36.174.181",
+            "server_port": 8882,
+            "tag": "ChatGPT 🏁 ZZ_348",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "server": "104.19.47.122",
+            "server_port": 2086,
+            "tag": "Vauth - 78🌍",
+            "transport": {
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "server": "172.67.199.34",
+            "server_port": 80,
+            "tag": "RELAY-172.67.199.34-2613🌍",
+            "transport": {
+                "path": "/shares",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "8b6dd709-4d4e-4b92-f542-54a676efbfe4"
+        },
+        {
+            "server": "104.26.7.132",
+            "server_port": 2086,
+            "tag": "None_None_vmess_028🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "ip1.1789034.xyz"
+                    ]
+                },
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "password": "ypDt8RkT7J",
+            "server": "213.186.36.123",
+            "server_port": 43118,
+            "tag": "_539🇫🇷",
+            "tls": {
+                "enabled": true,
+                "server_name": "wylbe.phooeyunfold.com",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "server": "172.67.204.84",
+            "server_port": 443,
+            "tag": "Vmess | @v2ray_alpha | 🏴‍☠️   ᶜᵈᶜᶠᵈ²³ᵇ",
+            "tls": {
+                "enabled": true,
+                "server_name": "jahfkjha.cfd",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "jahfkjha.cfd"
+                    ]
+                },
+                "path": "/linkws",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "950db6aa-4926-4616-816e-ec0312dcb87b"
+        },
+        {
+            "password": "G!yBwPWH3Vao",
+            "server": "134.195.196.178",
+            "server_port": 812,
+            "tag": "CA_586🇨🇦",
+            "type": "shadowsocks",
+            "method": "chacha20-ietf-poly1305",
+            "network": "tcp"
+        },
+        {
+            "password": "e4FCWrgpkji3QY",
+            "server": "38.68.135.112",
+            "server_port": 9101,
+            "tag": "US_234🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "142.0.134.241",
+            "server_port": 45017,
+            "tag": "_527🇺🇸",
+            "type": "vmess",
+            "alter_id": 64,
+            "security": "auto",
+            "uuid": "418048af-a293-4b99-9b0c-98ca3580dd24"
+        },
+        {
+            "password": "zDNVedRFPQexG9v",
+            "server": "38.111.114.133",
+            "server_port": 445,
+            "tag": "CA_519🇨🇦",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "15.204.87.222",
+            "server_port": 5600,
+            "tag": "US_984🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.19.45.50",
+            "server_port": 2086,
+            "tag": "None_None_vmess_040🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "ip1.1789034.xyz"
+                    ]
+                },
+                "path": "github.com/Alvin9999",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "e9e3cc13-db48-4cc1-8c24-7626439a5339"
+        },
+        {
+            "password": "c3NtHJ5ujV2tGDfj",
+            "server": "103.172.116.94",
+            "server_port": 9084,
+            "tag": "ChatGPT 🏁 ZZ_782",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb",
+            "network": "tcp"
+        },
+        {
+            "server": "kr03.victorialouisa.online",
+            "server_port": 80,
+            "tag": "KR_youtube@资源分享师_1🇰🇷",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "kr03.victorialouisa.online"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "25ea21e2-8455-4fca-85bf-4bfbc62646fc"
+        },
+        {
+            "password": "pjdnqv",
+            "server": "15.181.201.80",
+            "server_port": 443,
+            "tag": "🇺🇸 US 124 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "aws-us-dallas-1.f1rocketnode.com",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "server": "172.67.199.185",
+            "server_port": 8080,
+            "tag": "🇺🇸 US 1674 → tg@nicevpn123",
+            "transport": {
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "b551aa22-22af-11ee-b8d8-f23c932eb68d"
+        },
+        {
+            "password": "ypDt8RkT7J",
+            "server": "207.211.215.169",
+            "server_port": 43118,
+            "tag": "TR-207.211.215.169-0804 | 12.196MB🇹🇷",
+            "tls": {
+                "enabled": true,
+                "server_name": "tpmwf.phooeyunfold.com",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "dba20dcb635e430fa4d3bfc303a149d2",
+            "server": "104.16.192.157",
+            "server_port": 443,
+            "tag": "🇺🇸 US 1912 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "jobscareerfortoday.com",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "server": "154.92.9.3",
+            "server_port": 80,
+            "tag": "RELAY-154.92.9.3-8805🇯🇵",
+            "transport": {
+                "path": "/blue",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "dd41b5cb-b72e-4a8c-c75a-3ecc928d6eb3"
+        },
+        {
+            "password": "amazonskr05",
+            "server": "13.212.34.140",
+            "server_port": 443,
+            "tag": "SG_635🇸🇬",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb",
+            "network": "tcp"
+        },
+        {
+            "password": "XKFKl2rULjIp74",
+            "server": "23.157.40.101",
+            "server_port": 8008,
+            "tag": "ChatGPT 🏁 ZZ_898",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "de-v2ray.freevmess.com",
+            "server_port": 8442,
+            "tag": "🇺🇦 UA 41 → tg@nicevpn123",
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "0ff3822e-885b-4293-ac74-7faa98989569"
+        },
+        {
+            "password": "faBAoD54k87UJG7",
+            "server": "23.162.200.133",
+            "server_port": 2375,
+            "tag": "ChatGPT 🏁 ZZ_671",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "g5MeD6Ft3CWlJId",
+            "server": "23.157.40.87",
+            "server_port": 5004,
+            "tag": "_59🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "password": "e4FCWrgpkji3QY",
+            "server": "69.50.93.100",
+            "server_port": 9101,
+            "tag": "ChatGPT 🏁 ZZ_1310",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "TEzjfAYq2IjtuoS",
+            "server": "38.68.134.9",
+            "server_port": 6697,
+            "tag": "ChatGPT 🏁 ZZ_194",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "27876_t7d7f4e3f",
+            "server": "23.142.200.175",
+            "server_port": 443,
+            "tag": "🇺🇸 美国 004_2@8",
+            "tls": {
+                "enabled": true,
+                "server_name": "23.142.200.175",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "server": "104.19.47.48",
+            "server_port": 8443,
+            "tag": "RELAY-104.19.47.48-0498🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "hk01.linkitnow.net"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "39135a39-e6ca-43df-a360-d859eea58d86"
+        },
+        {
+            "password": "kDWvXYZoTBcGkC4",
+            "server": "23.162.200.154",
+            "server_port": 8882,
+            "tag": "ZZ_1270🇨🇦",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.160.167.76",
+            "server_port": 38000,
+            "tag": "🇺🇸 \u003e🇺🇸 US|Hs|0720|TG@FProxies| 16",
+            "tls": {
+                "enabled": true,
+                "server_name": "104.160.167.76",
+                "insecure": true
+            },
+            "transport": {
+                "path": "/path/181721272114",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "alter_id": 64,
+            "security": "auto",
+            "uuid": "418048af-a293-4b99-9b0c-98ca3580dd24"
+        },
+        {
+            "password": "amazonskr05",
+            "server": "13.212.14.204",
+            "server_port": 443,
+            "tag": "🇸🇬 SG😈github.com/Ruk1ng001_-1208371342",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb",
+            "network": "tcp"
+        },
+        {
+            "password": "VP8ZPxQpJtZRCjfZ",
+            "server": "103.172.116.94",
+            "server_port": 9080,
+            "tag": "🇸🇬 SG😈github.com/Ruk1ng001_-1787303544",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb",
+            "network": "tcp"
+        },
+        {
+            "password": "FoOiGlkAA9yPEGP",
+            "server": "23.157.40.103",
+            "server_port": 7307,
+            "tag": "ChatGPT 🏁 ZZ_1081",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "dba20dcb635e430fa4d3bfc303a149d2",
+            "server": "104.19.171.4",
+            "server_port": 443,
+            "tag": "🇺🇸 US 1857 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "jobscareertoday.com",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "server": "104.17.25.1",
+            "server_port": 80,
+            "tag": "🇺🇸 US 1216 → tg@nicevpn123",
+            "transport": {
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "83c19463-f966-4adb-a7d8-b127825ffab2"
+        },
+        {
+            "server": "104.21.83.108",
+            "server_port": 443,
+            "tag": "Vmess | @vmess_ir | 🏴‍☠️   ᵉᵇᵃ³ᵉᵈ¹ᵉ",
+            "tls": {
+                "enabled": true,
+                "server_name": "hms02.fxiaomi.sbs",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "hms02.fxiaomi.sbs"
+                    ]
+                },
+                "path": "/link",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "6c168fcc-2231-4f3b-8c1e-f6391692df4a"
+        },
+        {
+            "server": "wi.saintink.eu.org",
+            "server_port": 443,
+            "tag": "RELAY-104.21.17.233-7992🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "wi.saintink.eu.org"
+                    ]
+                },
+                "path": "/vuk2.0bad.com/chat",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "927094d3-d678-4763-8591-e240d0bcae87"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "38.111.114.133",
+            "server_port": 8888,
+            "tag": "CA_556🇨🇦",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "FoOiGlkAA9yPEGP",
+            "server": "38.121.43.71",
+            "server_port": 7307,
+            "tag": "_83🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "172.67.193.108",
+            "server_port": 443,
+            "tag": "RELAY-172.67.193.108-5860 | 121.393MB🌍",
+            "tls": {
+                "enabled": true,
+                "server_name": "RELAY-172.67.193.108-5860 | 121.393MB",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "gwdef.sbs"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "bc864078-dcf3-4bf4-8dbf-ca9f200b56be"
+        },
+        {
+            "password": "RexnBgU7EV5ADxG",
+            "server": "23.157.40.83",
+            "server_port": 7001,
+            "tag": "ChatGPT 🏁 ZZ_1229",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.18.214.17",
+            "server_port": 8080,
+            "tag": "🇺🇸 US 355 → tg@nicevpn123",
+            "transport": {
+                "path": "/dabai.in1721418",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "bdc7d7c5-be05-3db8-93e9-4d4157bfaa17"
+        },
+        {
+            "server": "104.19.38.12",
+            "server_port": 2052,
+            "tag": "🇨🇦 加拿大 046",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "cdn1.freegradely.xyz"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "d6b6d982-d52f-465a-b988-85670b23f64a"
+        },
+        {
+            "password": "M3t2ZEQcMGRWBjRa",
+            "server": "5.188.181.201",
+            "server_port": 9011,
+            "tag": "_365🇪🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb",
+            "network": "tcp"
+        },
+        {
+            "password": "KD1HHqw3qyK7RhaipiqRap",
+            "server": "193.201.15.185",
+            "server_port": 35199,
+            "tag": "ZZ_1238🇨🇾",
+            "type": "shadowsocks",
+            "method": "chacha20-ietf-poly1305",
+            "network": "tcp"
+        },
+        {
+            "password": "faBAoD54k87UJG7",
+            "server": "142.202.48.43",
+            "server_port": 2376,
+            "tag": "ChatGPT 🏁 ZZ_1279",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "password": "U6qnYRhfyDmn8sgn",
+            "server": "5.188.181.201",
+            "server_port": 9041,
+            "tag": "🇪🇸 ES-5.188.181.201-8285",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb",
+            "network": "tcp"
+        },
+        {
+            "password": "XKFKl2rULjIp74",
+            "server": "217.182.198.219",
+            "server_port": 8008,
+            "tag": "FR_668🇩🇪",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "23.154.136.51",
+            "server_port": 8888,
+            "tag": "ZZ_1241🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "iUB0923RBA",
+            "server": "154.3.8.151",
+            "server_port": 30067,
+            "tag": "US_946🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.21.235.170",
+            "server_port": 80,
+            "tag": "🇺🇸 US 450 → tg@nicevpn123",
+            "transport": {
+                "path": "/?ed=2048",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "f4c98b50-e614-11ee-b430-205c6d5f5d78"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "23.157.40.87",
+            "server_port": 3389,
+            "tag": "_323🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "password": "opentunnel.net-sdertyuijh",
+            "server": "cat-1.opensvr.net",
+            "server_port": 443,
+            "tag": "🇺🇸 US-172.232.25.148-3567",
+            "tls": {
+                "enabled": true,
+                "server_name": "cat-1.opensvr.net",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "cdBIDV42DCwnfIN",
+            "server": "145.239.6.202",
+            "server_port": 8118,
+            "tag": "FR_650🇬🇧",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "b3902e81-6260-4932-bcc9-708445fe40b4",
+            "server": "51.77.213.197",
+            "server_port": 443,
+            "tag": "FR_81🇫🇷",
+            "tls": {
+                "enabled": true,
+                "server_name": "51.77.213.197",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "password": "cdBIDV42DCwnfIN",
+            "server": "15.204.87.222",
+            "server_port": 8119,
+            "tag": "US_1006🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "Y6R9pAtvxxzmGC",
+            "server": "23.157.40.10",
+            "server_port": 5001,
+            "tag": "ZZ_98🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "PCnnH6SQSnfoS27",
+            "server": "38.110.1.51",
+            "server_port": 8091,
+            "tag": "US_1120🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "104.16.67.38",
+            "server_port": 2095,
+            "tag": "US_293🌍",
+            "transport": {
+                "path": "/afrhms16v.bestxray.buzz/linkws",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "f584de15-2034-4170-a723-f48c2bae5e0f"
+        },
+        {
+            "server": "172.67.220.64",
+            "server_port": 443,
+            "tag": "🇺🇸 US 626 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "172.67.220.64",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "www.31000oooowe2.bf"
+                    ]
+                },
+                "path": "/df97b21e-3943-4865-af18-b5ea9676b037",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "f24bba0f-8656-44f8-b21e-a0e3a190c4c5"
+        },
+        {
+            "server": "104.19.45.206",
+            "server_port": 2095,
+            "tag": "🇺🇸 US 1884 → tg@nicevpn123",
+            "transport": {
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "7a737f41-b792-4260-94ff-3d864da67b80"
+        },
+        {
+            "password": "FoOiGlkAA9yPEGP",
+            "server": "38.110.1.43",
+            "server_port": 7306,
+            "tag": "_393🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "server": "162.159.153.13",
+            "server_port": 443,
+            "tag": "RELAY-162.159.153.13-2446🌍",
+            "transport": {
+                "path": "/meizhiyuan/tr1?ed=2048",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "d2727ecc-87bd-4bd0-b321-eb037b5d4cca"
+        },
+        {
+            "password": "FoOiGlkAA9yPEGP",
+            "server": "38.86.135.225",
+            "server_port": 7306,
+            "tag": "US_948🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "XKFKl2rULjIp74",
+            "server": "23.157.40.120",
+            "server_port": 8009,
+            "tag": "ChatGPT 🏁 ZZ_1239",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "password": "g5MeD6Ft3CWlJId",
+            "server": "38.68.134.202",
+            "server_port": 5004,
+            "tag": "ChatGPT 🏁 ZZ_527",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "password": "f8npKgNzdkss2ytn",
+            "server": "213.183.63.69",
+            "server_port": 9088,
+            "tag": "ChatGPT 🏁 ZZ_850",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb",
+            "network": "tcp"
+        },
+        {
+            "server": "104.17.164.68",
+            "server_port": 8880,
+            "tag": "RELAY-104.17.164.68-9125🌍",
+            "transport": {
+                "path": "/GdtYWlsLmNvbSJ9LCJjb3V",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "4b5e4565-322f-4223-a891-78a84f189726"
+        },
+        {
+            "password": "88503a0a-3c8e-42ce-8fff-f67fa3171a1e",
+            "server": "172.232.62.234",
+            "server_port": 443,
+            "tag": "🇺🇸 US 221 → tg@nicevpn123",
+            "tls": {
+                "enabled": true,
+                "server_name": "172.232.62.234",
+                "insecure": true
+            },
+            "type": "trojan"
+        },
+        {
+            "server": "server31.beheshtbaneh.com",
+            "server_port": 8880,
+            "tag": "🇺🇸 US 500 → tg@nicevpn123",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "server31.beheshtbaneh.com"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "4154143c-bbba-47a4-9f79-c2ed087cbcc9"
+        },
+        {
+            "server": "156.249.18.44",
+            "server_port": 41002,
+            "tag": "🇳🇱 \u003e🇳🇱 NL|Hs|0720|TG@FProxies| 22",
+            "tls": {
+                "enabled": true,
+                "server_name": "156.249.18.44",
+                "insecure": true
+            },
+            "transport": {
+                "path": "/path/282616170107",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "alter_id": 64,
+            "security": "auto",
+            "uuid": "6193116d-96f9-4d7a-9be5-5bb06a69af0b"
+        },
+        {
+            "password": "G!yBwPWH3Vao",
+            "server": "185.172.113.182",
+            "server_port": 811,
+            "tag": "🇯🇵 JP-185.172.113.182-6108 | 4.406MB",
+            "type": "shadowsocks",
+            "method": "chacha20-ietf-poly1305",
+            "network": "tcp"
+        },
+        {
+            "server": "172.67.115.6",
+            "server_port": 2095,
+            "tag": "RELAY-172.67.115.6-8696🌍",
+            "transport": {
+                "path": "/hgcefomn",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "417d27fb-cb93-3bd8-9bf7-71cd91319821"
+        },
+        {
+            "server": "23.150.152.52",
+            "server_port": 443,
+            "tag": "US_speednode_0171🇺🇸",
+            "tls": {
+                "enabled": true,
+                "server_name": "wrmelmwxlf.gktevlrqznwqqozy.fabpfs66gizmnojhcvqxwl.kytrcfzqla87gvgvs6c7kjnrubuh.cc",
+                "insecure": true
+            },
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "maxin.beauty"
+                    ]
+                },
+                "path": "/linkvws",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "03fcc618-b93d-6796-6aed-8a38c975d581"
+        },
+        {
+            "server": "104.19.45.13",
+            "server_port": 2095,
+            "tag": "🇺🇸 US 1889 → tg@nicevpn123",
+            "transport": {
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "7a737f41-b792-4260-94ff-3d864da67b80"
+        },
+        {
+            "server": "fbi.gov",
+            "server_port": 8080,
+            "tag": "RELAY-104.16.149.244-2893🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "bibliographic-sword-sequence-advertisers.trycloudflare.com"
+                    ]
+                },
+                "path": "ef8c954e-014f-4b36-8273-9b5086afab34-vm",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "ef8c954e-014f-4b36-8273-9b5086afab34"
+        },
+        {
+            "server": "jp04.thomasina.buzz",
+            "server_port": 80,
+            "tag": "🇯🇵 日本4",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "jp04.thomasina.buzz"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "bda0b5bf-e2a7-445e-9b4f-ea1b80803c0d"
+        },
+        {
+            "password": "asdKkaskJKfnsa",
+            "server": "51.159.221.227",
+            "server_port": 443,
+            "tag": "🇫🇷 FR-51.159.221.227-6075",
+            "type": "shadowsocks",
+            "method": "aes-256-cfb",
+            "network": "tcp"
+        },
+        {
+            "password": "e4FCWrgpkji3QY",
+            "server": "38.68.135.112",
+            "server_port": 9101,
+            "tag": "US_1028🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "107.148.192.150",
+            "server_port": 41911,
+            "tag": "US_782🇺🇸",
+            "type": "vmess",
+            "alter_id": 64,
+            "security": "auto",
+            "uuid": "418048af-a293-4b99-9b0c-98ca3580dd24"
+        },
+        {
+            "server": "50.114.243.61",
+            "server_port": 43834,
+            "tag": "US_1185🇺🇸",
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "b246e34d-bbd1-4016-8f74-ea461c37e411"
+        },
+        {
+            "password": "FoOiGlkAA9yPEGP",
+            "server": "23.162.200.181",
+            "server_port": 7307,
+            "tag": "ChatGPT 🏁 ZZ_824",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "password": "e4FCWrgpkji3QY",
+            "server": "38.68.134.9",
+            "server_port": 9102,
+            "tag": "_312🇺🇸",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm"
+        },
+        {
+            "password": "faBAoD54k87UJG7",
+            "server": "23.150.152.16",
+            "server_port": 2375,
+            "tag": "ChatGPT 🏁 ZZ_116",
+            "type": "shadowsocks",
+            "method": "aes-256-gcm",
+            "network": "tcp"
+        },
+        {
+            "server": "23.227.38.23",
+            "server_port": 8080,
+            "tag": "🇺🇸 _CA_加拿大-\u003e🇺🇸_US_美国_2_5@10",
+            "transport": {
+                "path": "34c0bb5e-c120-432d-9c58-bd7d82c7397b-vm",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "34c0bb5e-c120-432d-9c58-bd7d82c7397b"
+        },
+        {
+            "server": "104.19.48.45",
+            "server_port": 8443,
+            "tag": "RELAY-104.19.48.45-0551🌍",
+            "transport": {
+                "headers": {
+                    "Host": [
+                        "hk01.linkitnow.net"
+                    ]
+                },
+                "path": "/",
+                "type": "ws"
+            },
+            "type": "vmess",
+            "security": "auto",
+            "uuid": "39135a39-e6ca-43df-a360-d859eea58d86"
+        },
+        {
+            "tag": "direct",
+            "type": "direct"
+        },
+        {
+            "tag": "block",
+            "type": "block"
+        },
+        {
+            "tag": "dns-out",
+            "type": "dns"
+        },
+        {
+            "default": "🌎 美洲",
+            "outbounds": [
+                "🌏 亚洲",
+                "🌎 美洲",
+                "🌍 欧洲",
+                "🌐 其他"
+            ],
+            "tag": "🚀 节点选择",
+            "type": "selector"
+        },
+        {
+            "default": "🌎 美洲",
+            "interrupt_exist_connections": false,
+            "outbounds": [
+                "🌎 美洲",
+                "🌍 欧洲",
+                "🌐 其他"
+            ],
+            "tag": "🤖 AI",
+            "type": "selector"
+        },
+        {
+            "default": "🎯 全球直连",
+            "interrupt_exist_connections": false,
+            "outbounds": [
+                "🎯 全球直连",
+                "🚀 节点选择",
+                "🌏 亚洲",
+                "🌎 美洲",
+                "🌍 欧洲",
+                "🌐 其他"
+            ],
+            "tag": "🍎 苹果",
+            "type": "selector"
+        },
+        {
+            "interrupt_exist_connections": false,
+            "outbounds": [
+                "SG_188🇸🇬",
+                "🇭🇰 @TG:JUZIBAIPIAO|深港隧道|流媒体解锁_102",
+                "SG_192🇸🇬",
+                "🇮🇳 IN 6 → tg@nicevpn123",
+                "HK_104🇯🇵",
+                "KR_youtube@资源分享师_1🇰🇷",
+                "RELAY-154.92.9.3-8805🇯🇵",
+                "SG_635🇸🇬",
+                "🇸🇬 SG😈github.com/Ruk1ng001_-1208371342",
+                "🇸🇬 SG😈github.com/Ruk1ng001_-1787303544",
+                "🇯🇵 JP-185.172.113.182-6108 | 4.406MB",
+                "🇯🇵 日本4"
+            ],
+            "tag": "🌏 亚洲",
+            "type": "urltest"
+        },
+        {
+            "interrupt_exist_connections": false,
+            "outbounds": [
+                "🇺🇸 US-103.224.182.249-5201",
+                "🇨🇦 CA-23.162.200.181-0648",
+                "US_328🇺🇸",
+                "US_56🇺🇸",
+                "Relay_🏁ZZ-🇨🇦CA_335 | 4.66Mb",
+                "🇨🇦 加拿大 154",
+                "🇺🇸 美国 - 洛杉矶 - Psychz Networks - 36",
+                "Relay_🏁ZZ-🇨🇦CA_394 | 3.29Mb",
+                "US_1149🇺🇸",
+                "🇺🇸 US-51.81.223.18-127",
+                "🇺🇸 _US_美国-\u003e🇷🇺_RU_俄罗斯联邦_0@28",
+                "🇺🇸 US 698 → tg@nicevpn123",
+                "🇺🇸 US 211 → tg@nicevpn123",
+                "🇺🇸 US-38.114.114.69-7739",
+                "🇺🇸 VMESS-未知\u003e美国-ChatGPT-TikTok-YouTube-104.21.1.28:8880",
+                "🇺🇸 美国 CloudFlare节点 24",
+                "_532🇨🇦",
+                "US_1123🇺🇸",
+                "ZZ_388🇨🇦",
+                "🇺🇸 US 1247 → tg@nicevpn123",
+                "🇺🇸 US 1877 → tg@nicevpn123",
+                "_22 | 8.35Mb🇺🇸",
+                "US_863🇺🇸",
+                "US_878🇺🇸",
+                "🇺🇸 VMESS-未知\u003e美国-NF解锁自制剧-104.19.45.212:2095",
+                "🇺🇸 US 910 → tg@nicevpn123",
+                "🇺🇸 US-38.121.43.71-5310",
+                "🇺🇸 US-38.114.114.69-7129",
+                "_225🇺🇸",
+                "🇺🇸 Relay_🇺🇸US-🇨🇦CA_1236",
+                "US_1113🇺🇸",
+                "🇺🇸 US 1124 → tg@nicevpn123",
+                "US_898🇺🇸",
+                "US_955🇺🇸",
+                "🇺🇸 US 1359 → tg@nicevpn123",
+                "US_1012🇺🇸",
+                "🇺🇸 Relay_🇺🇸US-🇺🇸US_228 |41.20Mb",
+                "🇺🇸 US-38.114.114.69-7506",
+                "🇺🇸 US 1208 → tg@nicevpn123",
+                "US_936🇺🇸",
+                "🇺🇸 US 2000 → tg@nicevpn123",
+                "🇺🇸 US-38.121.43.71-5318",
+                "🇺🇸 SS-美国-ChatGPT-TikTok-YouTube-15.204.87.222:5003",
+                "🇺🇸 US 1574 → tg@nicevpn123",
+                "_25🇨🇦",
+                "_102🇨🇦",
+                "_244🇨🇦",
+                "🇺🇸 US 2001 → tg@nicevpn123",
+                "🇺🇸 US 911 → tg@nicevpn123",
+                "ZZ_1232🇺🇸",
+                "US_1118🇺🇸",
+                "US_1018🇺🇸",
+                "🇺🇸 US-38.114.114.69-7254",
+                "🇺🇸 US 1236 → tg@nicevpn123",
+                "🇺🇸 US 1117 → tg@nicevpn123",
+                "US_176🇺🇸",
+                "_224🇺🇸",
+                "🇺🇸 US-38.68.134.9-6185",
+                "US_194🇺🇸",
+                "US_1005🇺🇸",
+                "_177🇺🇸",
+                "_135🇺🇸",
+                "🇦🇺 AU-103.224.212.211-5204",
+                "🇺🇸 US 510 → tg@nicevpn123",
+                "🇺🇸 US 735 → tg@nicevpn123",
+                "🇺🇸 _US_美国_5",
+                "_259🇺🇸",
+                "US_333🇺🇸",
+                "🇺🇸 US 543 → tg@nicevpn123",
+                "US_133🇺🇸",
+                "US_876🇺🇸",
+                "🇺🇸 US 832 → tg@nicevpn123",
+                "CA_586🇨🇦",
+                "US_234🇺🇸",
+                "_527🇺🇸",
+                "CA_519🇨🇦",
+                "US_984🇺🇸",
+                "🇺🇸 US 124 → tg@nicevpn123",
+                "🇺🇸 US 1674 → tg@nicevpn123",
+                "🇺🇸 US 1912 → tg@nicevpn123",
+                "_59🇺🇸",
+                "🇺🇸 美国 004_2@8",
+                "ZZ_1270🇨🇦",
+                "🇺🇸 \u003e🇺🇸 US|Hs|0720|TG@FProxies| 16",
+                "🇺🇸 US 1857 → tg@nicevpn123",
+                "🇺🇸 US 1216 → tg@nicevpn123",
+                "CA_556🇨🇦",
+                "_83🇺🇸",
+                "🇺🇸 US 355 → tg@nicevpn123",
+                "🇨🇦 加拿大 046",
+                "ZZ_1241🇺🇸",
+                "US_946🇺🇸",
+                "🇺🇸 US 450 → tg@nicevpn123",
+                "_323🇺🇸",
+                "🇺🇸 US-172.232.25.148-3567",
+                "US_1006🇺🇸",
+                "ZZ_98🇺🇸",
+                "US_1120🇺🇸",
+                "🇺🇸 US 626 → tg@nicevpn123",
+                "🇺🇸 US 1884 → tg@nicevpn123",
+                "_393🇺🇸",
+                "US_948🇺🇸",
+                "🇺🇸 US 221 → tg@nicevpn123",
+                "🇺🇸 US 500 → tg@nicevpn123",
+                "US_speednode_0171🇺🇸",
+                "🇺🇸 US 1889 → tg@nicevpn123",
+                "US_1028🇺🇸",
+                "US_782🇺🇸",
+                "US_1185🇺🇸",
+                "_312🇺🇸",
+                "🇺🇸 _CA_加拿大-\u003e🇺🇸_US_美国_2_5@10"
+            ],
+            "tag": "🌎 美洲",
+            "type": "urltest"
+        },
+        {
+            "interrupt_exist_connections": false,
+            "interval": "5m",
+            "outbounds": [
+                "🇺🇸 _US_美国-\u003e🇷🇺_RU_俄罗斯联邦_0@28",
+                "_410🇬🇧",
+                "RELAY-203.30.191.191-1408🇧🇿",
+                "_407🇫🇷",
+                "_494🇷🇺",
+                "🇬🇧 GB 7 → tg@nicevpn123",
+                "🇳🇱 \u003e🇳🇱 NL|Hs|0720|TG@FProxies| 12",
+                "FR_666🇫🇷",
+                "🇬🇧 GB 31 → tg@nicevpn123",
+                "🇺🇦 UA 16 → tg@nicevpn123",
+                "🇩🇪 DE-162.55.62.193-3832",
+                "US_1203🇳🇱",
+                "_415🇫🇷",
+                "🇪🇸 ES-5.188.181.201-0793 | 12.485MB",
+                "DE_574🇩🇪",
+                "FR_588🇫🇷",
+                "🇫🇷 VMESS-法国-NF解锁自制剧-ChatGPT-TikTok-YouTube-irvideo.cfd:443",
+                "DE_627🇩🇪",
+                "_539🇫🇷",
+                "🇺🇦 UA 41 → tg@nicevpn123",
+                "_365🇪🇸",
+                "🇪🇸 ES-5.188.181.201-8285",
+                "FR_668🇩🇪",
+                "FR_650🇬🇧",
+                "FR_81🇫🇷",
+                "🇳🇱 \u003e🇳🇱 NL|Hs|0720|TG@FProxies| 22",
+                "🇫🇷 FR-51.159.221.227-6075"
+            ],
+            "tag": "🌍 欧洲",
+            "type": "urltest"
+        },
+        {
+            "interrupt_exist_connections": false,
+            "interval": "5m",
+            "outbounds": [
+                "RELAY-141.101.115.99-8893🌍",
+                "5aa527b77a5444a9ac3708ed68db026b_@_💘 @v2ray_configs_pool 💘",
+                "RELAY-104.21.95.165-0501 | 18.912MB🌍",
+                "ChatGPT 🏁 ZZ_1010",
+                "ChatGPT 🏁 ZZ_121",
+                "RELAY-104.21.82.39-2890🌍",
+                "RELAY-198.41.212.92-5210🌍",
+                "_418🇹🇷",
+                "ChatGPT 🏁 ZZ_1414",
+                "RELAY-104.21.17.233-8095🌍",
+                "ChatGPT 🏁 ZZ_1376",
+                "PL_80🇵🇱",
+                "US_731🌍",
+                "RELAY-172.64.233.37-0866🌍",
+                "_311🇱🇹",
+                "RELAY-172.67.199.187-0486🌍",
+                "ChatGPT 🏁 ZZ_90",
+                "9c62341544ac48f78b4e86f90cf193c9_@_💘 @v2ray_configs_pool 💘",
+                "RELAY-198.41.222.199-8533🌍",
+                "AU_13🇮🇩",
+                "ChatGPT 🏁 ZZ_1078",
+                "ChatGPT 🏁 ZZ_267",
+                "RELAY-162.159.135.42-3218🌍",
+                "3443929ce7ae43efb46a93ef7841174b_@_💘 @v2ray_configs_pool 💘",
+                "ChatGPT 🏁 ZZ_723",
+                "RELAY-104.26.0.56-1145🌍",
+                "RELAY-172.67.171.43-0364🌍",
+                "UM😈github.com/Ruk1ng001_-1417638242",
+                "556654b4f01f48ae85bc3b2eb4a92757_@_💘 @v2ray_configs_pool 💘",
+                "RELAY-172.67.147.168-7991🌍",
+                "PL_725🇵🇱",
+                "ChatGPT 🏁 ZZ_256",
+                "ChatGPT 🏁 ZZ_432",
+                "RELAY-104.17.21.243-2008🌍",
+                "_437🇹🇷",
+                "ChatGPT 🏁 ZZ_1417",
+                "Vauth - 139🌍",
+                "VM-WS-NA 🏴‍☠️ NA-104.17.147.22:8880",
+                "@v2ray_configs_pool 💘 30",
+                "disney_netflix_US 21🌍",
+                "ChatGPT 🏁 ZZ_1032",
+                "RELAY-104.19.47.250-0547🌍",
+                "RELAY-104.19.46.63-0313 | 3.589MB🌍",
+                "ChatGPT 🏁 ZZ_975",
+                "ChatGPT 🏁 ZZ_383",
+                "ChatGPT 🏁 ZZ_663",
+                "_466🇮🇸",
+                "ChatGPT 🏁 ZZ_1398",
+                "ChatGPT 🏁 ZZ_348",
+                "Vauth - 78🌍",
+                "RELAY-172.67.199.34-2613🌍",
+                "None_None_vmess_028🌍",
+                "Vmess | @v2ray_alpha | 🏴‍☠️   ᶜᵈᶜᶠᵈ²³ᵇ",
+                "None_None_vmess_040🌍",
+                "ChatGPT 🏁 ZZ_782",
+                "TR-207.211.215.169-0804 | 12.196MB🇹🇷",
+                "ChatGPT 🏁 ZZ_898",
+                "ChatGPT 🏁 ZZ_671",
+                "ChatGPT 🏁 ZZ_1310",
+                "ChatGPT 🏁 ZZ_194",
+                "RELAY-104.19.47.48-0498🌍",
+                "ChatGPT 🏁 ZZ_1081",
+                "Vmess | @vmess_ir | 🏴‍☠️   ᵉᵇᵃ³ᵉᵈ¹ᵉ",
+                "RELAY-104.21.17.233-7992🌍",
+                "RELAY-172.67.193.108-5860 | 121.393MB🌍",
+                "ChatGPT 🏁 ZZ_1229",
+                "ZZ_1238🇨🇾",
+                "ChatGPT 🏁 ZZ_1279",
+                "US_293🌍",
+                "RELAY-162.159.153.13-2446🌍",
+                "ChatGPT 🏁 ZZ_1239",
+                "ChatGPT 🏁 ZZ_527",
+                "ChatGPT 🏁 ZZ_850",
+                "RELAY-104.17.164.68-9125🌍",
+                "RELAY-172.67.115.6-8696🌍",
+                "RELAY-104.16.149.244-2893🌍",
+                "ChatGPT 🏁 ZZ_824",
+                "ChatGPT 🏁 ZZ_116",
+                "RELAY-104.19.48.45-0551🌍"
+            ],
+            "tag": "🌐 其他",
+            "type": "urltest"
+        },
+        {
+            "default": "🎯 全球直连",
+            "outbounds": [
+                "🎯 全球直连",
+                "🚀 节点选择"
+            ],
+            "tag": "🐟 漏网之鱼",
+            "type": "selector"
+        },
+        {
+            "default": "direct",
+            "outbounds": [
+                "direct",
+                "🚀 节点选择"
+            ],
+            "tag": "🎯 全球直连",
+            "type": "selector"
+        }
+    ],
+    "route": {
+        "auto_detect_interface": true,
+        "final": "🐟 漏网之鱼",
+        "rule_set": [
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "geosite-geolocation-!cn",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-!cn.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "geosite-cn",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "geosite-google",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-google.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "geosite-apple",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-apple.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "geosite-adblock",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-adblock.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "geosite-adblockplus",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-adblockplus.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "geosite-adguard",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-adguard.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "geosite-cn@ads",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn@ads.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "YouTube",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/YouTube.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "OpenAI",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/OpenAI.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "source",
+                "tag": "TikTok",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/TikTok.json"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "Telegram",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/Telegram.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "Twitter",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/Twitter.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "Netflix",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/Netflix.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "WeChat",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/WeChat.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "Bilibili",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/Bilibili.srs"
+            },
+            {
+                "download_detour": "direct",
+                "format": "binary",
+                "tag": "GFW",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/Toperlock/sing-box-geosite/main/rule/gfw.srs"
+            },
+            {
+                "format": "binary",
+                "tag": "ads",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/DustinWin/ruleset_geodata/sing-box-ruleset/ads.srs"
+            },
+            {
+                "format": "binary",
+                "tag": "ai",
+                "type": "remote",
+                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/DustinWin/ruleset_geodata/sing-box-ruleset/ai.srs"
+            }
+        ],
+        "rules": [
+            {
+                "outbound": "dns-out",
+                "protocol": "dns"
+            },
+            {
+                "clash_mode": "direct",
+                "outbound": "direct"
+            },
+            {
+                "outbound": "🎯 全球直连",
+                "rule_set": [
+                    "WeChat",
+                    "Bilibili"
+                ]
+            },
+            {
+                "clash_mode": "global",
+                "outbound": "🚀 节点选择"
+            },
+            {
+                "outbound": "🍎 苹果",
+                "rule_set": "geosite-apple"
+            },
+            {
+                "outbound": "🤖 AI",
+                "rule_set": [
+                    "OpenAI",
+                    "ai"
+                ]
+            },
+            {
+                "outbound": "block",
+                "protocol": "quic"
+            },
+            {
+                "outbound": "block",
+                "rule_set": [
+                    "geosite-adblockplus",
+                    "geosite-adguard"
+                ]
+            },
+            {
+                "outbound": "🚀 节点选择",
+                "rule_set": [
+                    "GFW",
+                    "TikTok",
+                    "Telegram",
+                    "Netflix"
+                ]
+            },
+            {
+                "outbound": "🎯 全球直连",
+                "rule_set": "geosite-cn"
+            },
+            {
+                "mode": "and",
+                "outbound": "🚀 节点选择",
+                "rules": [
+                    {
+                        "rule_set": "geosite-geolocation-!cn"
+                    },
+                    {
+                        "invert": true,
+                        "rule_set": "geosite-cn"
+                    }
+                ],
+                "type": "logical"
+            },
+            {
+                "ip_is_private": true,
+                "outbound": "🎯 全球直连"
+            }
+        ]
+    }
+}
