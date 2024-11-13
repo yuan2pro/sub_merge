@@ -43,6 +43,7 @@ length = len(url_list)
 
 thread_num = length // step + 1
 
+not_cipher = ['chacha20-poly1305', 'ss']
 
 # lock = threading.Lock()
 
@@ -170,7 +171,7 @@ def run(index, shared_list):
                                 if tls is False:
                                     not_proxies.add(proxie['server'])
                                     continue
-                        if "cipher" in proxie.keys() and proxie['cipher'] == "chacha20-poly1305":
+                        if "cipher" in proxie.keys() and proxie['cipher'] in not_cipher:
                             not_proxies.add(proxie['server'])
                             continue
                         if server in exce_url:
