@@ -120,7 +120,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
 
 class update_url():
 
-    def update_main(update_enable_list=[0, 7, 25, 43]):
+    def update_main(update_enable_list=[0, 25, 43]):
         if len(update_enable_list) > 0:
             for id in update_enable_list:
                 status = update_url.update(id)
@@ -162,18 +162,6 @@ class update_url():
                 return [id, url_update]
             except Exception as err:
                 logging.error(f"{err.args[0]}")
-                return [id, 404]
-
-        elif id == 7:
-            # remarks: https://freenode.openrunner.net/
-            # today = datetime.today().strftime('%m%d')
-            # 得到当天一天 https://freenode.openrunner.net/uploads/20231123-clash.yaml
-            today = datetime.today().strftime('%Y%m%d')
-            front_url = 'https://freenode.openrunner.net/uploads/today-clash.yaml'
-            url_update = front_url.replace("today", today)
-            if check_url(url_update):
-                return [id, url_update]
-            else:
                 return [id, 404]
 
         elif id == 43:
