@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: "0 0/4 * * *"
+    - cron: "0 0/6 * * *"
 
 jobs:
   deploy:
@@ -63,13 +63,16 @@ jobs:
       - name: Install clash-speedtest
         run: go install github.com/faceair/clash-speedtest@latest
 
-      - name: Run clash-speedtest
+      - name: Run clash-speedtest in parallel
         run: |
           counter=0
           for file in ${{ env.CURRENT_DIR }}/sub/*.yaml; do
+          (
             ~/go/bin/clash-speedtest -c "$file" -output "${{ env.CURRENT_DIR }}/sub/${counter}.yaml"
-            counter=$((counter + 1))
+          ) &
+          counter=$((counter + 1))
           done
+          wait
 
       - name: Checkout clash2singbox repository
         uses: actions/checkout@v2
