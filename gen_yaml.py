@@ -37,7 +37,7 @@ with open(url_file, 'r', encoding='utf-8') as f:  # 载入订阅链接
 url_list = urls.split("|")
 # 打乱顺序
 random.shuffle(url_list)
-step = 20
+step = 30
 index = 0
 length = len(url_list)
 
@@ -146,17 +146,17 @@ def run(index, shared_list):
                 for proxie in proxies:
                     try:
                         server = proxie['server']
-                        port = proxie['port']
-                        sp = str(server) + ":" + str(port)
-                        if not test_connection(server, port):
-                            servers.add(sp)
-                            not_proxies.add(proxie['server'])
-                            continue
-                        if sp in servers:
-                            not_proxies.add(proxie['server'])
-                            continue
-                        else:
-                            servers.add(sp)
+                        # port = proxie['port']
+                        # sp = str(server) + ":" + str(port)
+                        # if not test_connection(server, port):
+                        #     servers.add(sp)
+                        #     not_proxies.add(proxie['server'])
+                        #     continue
+                        # if sp in servers:
+                        #     not_proxies.add(proxie['server'])
+                        #     continue
+                        # else:
+                        #     servers.add(sp)
                         name = proxie['name']
                         if name not in node_name:
                             node_name.add(name)
@@ -184,13 +184,13 @@ def run(index, shared_list):
                             not_proxies.add(proxie['server'])
                             continue
                         # add name emoji
-                        if not has_emoji(name):
-                            c_emoji = get_country_emoji(server)
-                            if c_emoji is not None:
-                                proxie['name'] = name + str(c_emoji)
-                            else:
-                                not_proxies.add(proxie['server'])
-                                continue
+                        # if not has_emoji(name):
+                        #     c_emoji = get_country_emoji(server)
+                        #     if c_emoji is not None:
+                        #         proxie['name'] = name + str(c_emoji)
+                        #     else:
+                        #         not_proxies.add(proxie['server'])
+                        #         continue
                         new_proxies.append(proxie)
                     except Exception as e:
                         not_proxies.add(proxie['server'])
