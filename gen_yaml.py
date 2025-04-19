@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import base64
 import logging
 import multiprocessing
 import random
@@ -43,7 +44,11 @@ length = len(url_list)
 
 thread_num = length // step + 1
 
-not_cipher = ['chacha20-poly1305', 'ss']
+# 根据merged_proxies.yaml补充所有加密算法
+cipher_list = [
+    'aes-128-gcm', 'aes-256-gcm', 'chacha20-ietf-poly1305', 'auto',
+    'aes-256-cfb', 'aes-256-ctr', 'rc4-md5', 'xchacha20-ietf-poly1305', 'dummy'
+]  # Define valid ciphers
 
 # lock = threading.Lock()
 
@@ -171,7 +176,7 @@ def run(index, shared_list):
                                 if tls is False:
                                     not_proxies.add(proxie['server'])
                                     continue
-                        if "cipher" in proxie.keys() and proxie['cipher'] in not_cipher:
+                        if "cipher" in proxie.keys() and proxie['cipher'] not in cipher_list:
                             not_proxies.add(proxie['server'])
                             continue
                         if server in exce_url:
@@ -183,6 +188,14 @@ def run(index, shared_list):
                         if "uuid" in proxie.keys() and len(proxie['uuid']) != 36:
                             not_proxies.add(proxie['server'])
                             continue
+                        # 校验protocol-param是否正常
+                        if "protocol-param" in proxie.keys():
+                            try:
+                                proxie['protocol-param'] = base64.b64decode(proxie['protocol-param']).decode('utf-8')
+                            except Exception as e:
+                                not_proxies.add(proxie['server'])
+                                continue
+                        
                         # add name emoji
                         # if not has_emoji(name):
                         #     c_emoji = get_country_emoji(server)
