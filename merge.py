@@ -18,9 +18,11 @@ def merge_proxies(directory, output_file):
                             seen_names.add(proxy['name'])  # 将新的代理名称添加到集合中
             os.remove(filepath)
 
-    # 生成新的 .yaml 文件
-    with open(output_file, 'w', encoding='utf-8') as file:
-        yaml.safe_dump({'proxies': all_proxies}, file, allow_unicode=True)
+    # 每1000条生成一个yaml文件
+    for i in range(0, len(all_proxies), 1000):
+        chunk = all_proxies[i:i+1000]
+        with open(f'sub/merged_proxies_{i//1000+1}.yaml', 'w', encoding='utf-8') as file:
+            yaml.safe_dump({'proxies': chunk}, file, allow_unicode=True)
 
 # 使用示例
 merge_proxies('sub', 'sub/merged_proxies.yaml')
