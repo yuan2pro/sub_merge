@@ -120,7 +120,7 @@ def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
 
 class update_url():
 
-    def update_main(update_enable_list=[0, 25, 43]):
+    def update_main(update_enable_list=[0]):
         if len(update_enable_list) > 0:
             for id in update_enable_list:
                 status = update_url.update(id)
