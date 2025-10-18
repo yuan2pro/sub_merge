@@ -164,33 +164,6 @@ class update_url():
                 logging.error(f"{err.args[0]}")
                 return [id, 404]
 
-        elif id == 43:
-            # remarks: v2raydy/v2ray, 将原链接更新至 https://https://raw.githubusercontent.com/v2raydy/v2ray/main/%MM-%(DD - 1)%str%1.txt
-            # 得到当前日期前一天 https://blog.csdn.net/wanghuafengc/article/details/42458721
-            # https://nodefree.org/dy/2023/02/20230205.yaml
-            today = datetime.today().strftime('%Y%m%d')
-            year = datetime.today().strftime('%Y') + '/'
-            month = datetime.today().strftime('%m') + '/'
-            front_url = 'https://nodefree.org/dy/'
-            end_url = '.yaml'
-            url_update = front_url + year + month + today + end_url
-            if check_url(url_update):
-                return [id, url_update]
-            else:
-                return [id, 404]
-
-        elif id == 25:
-            today = datetime.today().strftime('%Y%m%d')
-            month = datetime.today().strftime('%m') + '/'
-            year = datetime.today().strftime('%Y') + '/'
-            front_url = 'https://v2rayshare.com/wp-content/uploads/'
-            end_url = '.yaml'
-            url_update = front_url + year + month + today + end_url
-            if check_url(url_update):
-                return [id, url_update]
-            else:
-                return [id, 404]
-
 
 if __name__ == '__main__':
     update_url.update_main()

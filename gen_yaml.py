@@ -168,6 +168,11 @@ def run(index, shared_list):
                         else:
                             name = name + str(len(node_name))
                             proxie['name'] = name
+                        # Special handling for SS nodes without obfs parameter
+                        if proxie.get('type') == 'ss' and 'obfs' not in proxie:
+                            # SS nodes without obfs parameter should not be removed
+                            not_proxies.add(proxie['server'])
+                            continue
                         # TLS must be true with h2/ grpc network
                         if "network" in proxie.keys() and "tls" in proxie.keys():
                             network = proxie['network']
