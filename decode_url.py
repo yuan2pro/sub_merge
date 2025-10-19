@@ -263,8 +263,17 @@ def decode_url_to_nodes(url):
             decoded_content = base64.b64decode(content).decode('utf-8')
         except:
             decoded_content = content
-        
-        # Parse the content
+
+        # 优先尝试解析为 YAML，若包含 proxies 字段则直接返回
+        try:
+            yaml_obj = yaml.safe_load(decoded_content)
+            if isinstance(yaml_obj, dict) and 'proxies' in yaml_obj and isinstance(yaml_obj['proxies'], list):
+                logging.info('检测到 YAML 格式，直接返回 proxies 字段内容')
+                return yaml_obj['proxies']
+        except Exception as e:
+            pass
+
+        # 否则按原有方式逐行解析
         nodes = []
         for line in decoded_content.splitlines():
             line = line.strip()
@@ -280,7 +289,6 @@ def decode_url_to_nodes(url):
                         # 如果加密方式为 none，改为 auto
                         if cipher == 'none':
                             cipher = 'auto'
-                            
                         node = {
                             'type': 'vmess',
                             'name': random_name,
@@ -316,7 +324,6 @@ def decode_url_to_nodes(url):
                     logging.error(f"Error parsing line '{line[:50]}...': {e}")
                     continue
         return nodes
-    
     except requests.exceptions.RequestException as e:
         logging.error(f"Error fetching URL: {e}")
         return []

@@ -117,7 +117,8 @@ def run(index, shared_list):
             nodes = decode_url.decode_url_to_nodes(url)
             new_proxies.extend(nodes)
             logging.info(f"Successfully parsed {len(nodes)} nodes from {url}")
-            continue
+            if len(nodes) > 0:
+                continue
         except Exception as e:
             pass
         url_quote = urllib.parse.quote(url, safe='')
