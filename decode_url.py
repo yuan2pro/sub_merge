@@ -20,18 +20,21 @@ def decode_vless_link(vless_link):
 
         # 生成随机名称
         random_name = f"Node-{str(uuid.uuid4())[:8]}"
+        # 设置加密方式，VLESS 默认使用 none
+        encryption = params.get('encryption', ['none'])[0]
+        security = params.get('security', ['tls'])[0]  # 默认使用 tls
+        
         node = {
             'type': 'vless',
             'name': random_name,
             'server': parsed_url.hostname,
             'port': int(parsed_url.port),
             'uuid': parsed_url.username,
-            'encryption': params.get('encryption', ['none'])[0],
-            'security': params.get('security', ['none'])[0],
             'network': params.get('type', ['tcp'])[0],
-            'tls': True if params.get('security', [''])[0] == 'tls' else False,
-            'sni': params.get('sni', [''])[0],
-            'skip-cert-verify': params.get('insecure', ['0'])[0] == '1'
+            'tls': True if security == 'tls' else False,
+            'udp': True,  # 启用 UDP 支持
+            'skip-cert-verify': params.get('allowInsecure', ['0'])[0] == '1',
+            'servername': params.get('sni', [''])[0] or parsed_url.hostname  # 优先使用 SNI，否则使用服务器地址
         }
 
         # Add ws-opts if network is websocket
@@ -90,8 +93,9 @@ def decode_ss_link(ss_link):
             'name': random_name,
             'server': server,
             'port': int(port),
-            'cipher': method,
-            'password': password
+            'cipher': method.lower(),  # 确保加密方式为小写
+            'password': password,
+            'udp': True  # 启用 UDP 支持
         }
     except Exception as e:
         logging.error(f"Error parsing SS link: {e}")
@@ -111,10 +115,12 @@ def decode_trojan_link(trojan_link):
             'server': parsed_url.hostname,
             'port': int(parsed_url.port),
             'password': parsed_url.username,
-            'sni': params.get('sni', [''])[0],
+            'udp': True,  # 启用 UDP 支持
+            'sni': params.get('sni', [''])[0] or parsed_url.hostname,  # 优先使用 SNI，否则使用服务器地址
             'skip-cert-verify': params.get('allowInsecure', ['0'])[0] == '1',
             'network': params.get('type', ['tcp'])[0],
-            'tls': True
+            'tls': True,  # Trojan 必须启用 TLS
+            'alpn': ['h2', 'http/1.1']  # 添加 ALPN 支持
         }
 
         # Add ws-opts if network is websocket
@@ -178,10 +184,11 @@ def decode_ssr_link(ssr_link):
             'name': random_name,
             'server': server,
             'port': int(port),
-            'cipher': method,
+            'cipher': method.lower(),  # 确保加密方式为小写
             'password': password,
-            'protocol': protocol,
-            'obfs': obfs
+            'protocol': protocol.lower(),  # 确保协议为小写
+            'obfs': obfs.lower(),  # 确保混淆为小写
+            'udp': True  # 启用 UDP 支持
         }
 
         # Add optional parameters if they exist
@@ -208,10 +215,13 @@ def decode_hysteria2_link(hy2_link):
             'name': random_name,
             'server': parsed_url.hostname,
             'port': int(parsed_url.port),
-            'uuid': parsed_url.username,
-            'sni': params.get('sni', [''])[0],
+            'password': parsed_url.username,  # Hysteria2 使用 password 而不是 uuid
+            'sni': params.get('sni', [''])[0] or parsed_url.hostname,  # 优先使用 SNI，否则使用服务器地址
             'skip-cert-verify': params.get('insecure', ['0'])[0] == '1',
-            'tls': True
+            'tls': True,  # Hysteria2 必须启用 TLS
+            'alpn': ['h3'],  # Hysteria2 默认使用 HTTP/3
+            'udp': True,  # 启用 UDP 支持
+            'hop-interval': 10,  # 添加默认的连接保活间隔
         }
 
         return node
@@ -243,6 +253,12 @@ def decode_url_to_nodes(url):
                         node_data = json.loads(base64.b64decode(line[8:]).decode())
                         # 生成随机名称
                         random_name = f"Node-{str(uuid.uuid4())[:8]}"
+                        # 设置默认加密方式为 auto，确保与 Clash 兼容
+                        cipher = node_data.get('security', 'auto')
+                        # 如果加密方式为 none，改为 auto
+                        if cipher == 'none':
+                            cipher = 'auto'
+                            
                         node = {
                             'type': 'vmess',
                             'name': random_name,
@@ -250,7 +266,7 @@ def decode_url_to_nodes(url):
                             'port': int(node_data.get('port', 0)),
                             'uuid': node_data.get('id', ''),
                             'alterId': int(node_data.get('aid', 0)),
-                            'cipher': node_data.get('type', 'auto'),
+                            'cipher': cipher,
                             'tls': True if node_data.get('tls') == 'tls' else False
                         }
                         nodes.append(node)
