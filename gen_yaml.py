@@ -15,6 +15,7 @@ import yaml
 from requests.adapters import HTTPAdapter
 
 import decode_url
+import time
 
 # 载入 MaxMind 提供的数据库文件
 reader = geoip2.database.Reader('GeoLite2-Country.mmdb')
@@ -285,9 +286,28 @@ if __name__ == '__main__':
         processes.append(p)
         p.start()
     logging.info("多进程已启动")
-    # 等待所有进程结束
-    for p in processes:
-        p.join()
+
+    threshold = 100000  # 节点阈值，达到则停止所有子进程
+    try:
+        # 监控子进程与 shared_list 长度
+        while any(p.is_alive() for p in processes):
+            if len(shared_list) >= threshold:
+                logging.warning("节点数达到阈值 %d，停止所有子进程", threshold)
+                for p in processes:
+                    if p.is_alive():
+                        p.terminate()
+                break
+            time.sleep(1)
+    except KeyboardInterrupt:
+        logging.warning("收到中断，终止子进程")
+        for p in processes:
+            if p.is_alive():
+                p.terminate()
+    finally:
+        for p in processes:
+            p.join()
+
+    logging.info("多进程已结束，当前节点数：%d", len(shared_list))
     random.shuffle(shared_list)
     each_num = 512
     thread_list = []
