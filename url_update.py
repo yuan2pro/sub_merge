@@ -31,7 +31,7 @@ def check_url(url):  # 判断远程远程链接是否已经更新
         status = resp.status_code
     except Exception:
         status = 404
-    if status == 200 and len(get_node_from_sub(url)) > 0:
+    if status == 200:
         isAccessable = True
     else:
         isAccessable = False
@@ -42,8 +42,9 @@ def write_url():
     enabled_list = []
     false_list = []
     for index in range(len(raw_list)):
-        urls = raw_list[index]['url']
-        url_list = get_node_from_sub(url_raw=urls)
+        urls = raw_list[index]['url'].split("|")
+        # 判断url是否可用
+        url_list = [url for url in urls if check_url(url)]
         if len(url_list) > 0:
             raw_list[index]['enabled'] = True
             enabled_list.extend(url_list)
@@ -63,60 +64,6 @@ def write_url():
     file = open(sub_list_json, 'w', encoding='utf-8')
     file.write(updated_list)
     file.close()
-
-
-def get_node_from_sub(url_raw='', server_host='http://127.0.0.1:25500'):
-    # 使用远程订阅转换服务
-    # server_host = 'https://sub.xeton.dev'
-    # 使用本地订阅转换服务
-    # 分割订阅链接
-    urls = url_raw.split('|')
-    avaliable_url = []
-    for url in urls:
-        if not url.startswith("http"):
-            continue
-        # 对url进行ASCII编码
-        # # 切换代理
-        # if "github" in url:
-        #     url = url.replace("githubusercontent.com","fastgit.org")
-        url_quote = urllib.parse.quote(url.strip(), safe='')
-        # 转换并获取订阅链接数据
-        converted_url = server_host + '/sub?target=clash&url=' + \
-                        url_quote + '&emoji=true&list=true&tfo=false&scv=true&fdn=true&sort=false&new_name=true'
-        try:
-            s = requests.Session()
-            s.mount('http://', HTTPAdapter(max_retries=5))
-            s.mount('https://', HTTPAdapter(max_retries=5))
-            resp = s.get(converted_url, timeout=30)
-            # 如果解析出错，将原始链接内容拷贝下来
-            text = resp.text
-            if 'No nodes were found!' in text:
-                logging.info(f"{url} No nodes were found!")
-                continue
-            # 如果是包含chacha20-poly1305跳过
-            # if 'chacha20-poly1305' in text:
-            #     logging.info(url + " chacha20-poly1305!")
-            #     continue
-            # if '#' in text:
-            #     logging.info(url + " #")
-            #     continue
-            if 'The following link' in text:
-                logging.error(f"{url} The following link")
-                continue
-            # 检测节点乱码
-            # try:
-            #     text.encode('utf-8')
-            #     yaml.safe_load(text)
-            # except Exception as e:
-            #     logging.error(f"url:{url} error:{e.args[0]}")
-            #     continue
-            avaliable_url.append(url)
-        except Exception as err:
-            # 链接有问题，直接返回原始错误
-            logging.error(f"{url} error:{err.args[0]}")
-            continue
-    return avaliable_url
-
 
 class update_url():
 
