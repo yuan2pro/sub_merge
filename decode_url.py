@@ -1,16 +1,28 @@
 import base64
 import json
 import logging
+import socket
 import sys
 import uuid
 from urllib.parse import parse_qs, urlparse
 
+import geoip2.database
 import requests
 import yaml
+
+# 载入 MaxMind 提供的数据库文件
+reader = geoip2.database.Reader('GeoLite2-Country.mmdb')
 
 # 配置日志记录器
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(lineno)d - %(message)s')
 
+
+# Clash 和 sing-box 支持的加密方式列表
+supported_ciphers = [
+    'rc4-md5', 'aes-128-cfb', 'aes-128-gcm', 'aes-256-gcm', 
+    'aes-256-cfb', 'chacha20-ietf-poly1305',
+    '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm'
+]
 
 def decode_vless_link(vless_link):
     """Parse VLESS protocol URL and return Clash-compatible format"""
@@ -19,9 +31,12 @@ def decode_vless_link(vless_link):
         try:
             node_yaml = yaml.safe_load(vless_link)
             if isinstance(node_yaml, dict) and node_yaml.get('type') == 'vless':
+                # 生成基础名称和获取国旗
+                base_name = node_yaml.get('name', f"Node-{str(uuid.uuid4())[:8]}")
+                emoji = get_country_emoji(node_yaml['server'])
                 node = {
                     'type': 'vless',
-                    'name': node_yaml.get('name', f"Node-{str(uuid.uuid4())[:8]}"),
+                    'name': f"{emoji} {base_name}",
                     'server': node_yaml['server'],
                     'port': int(node_yaml['port']),
                     'uuid': node_yaml['uuid'],
@@ -62,8 +77,13 @@ def decode_vless_link(vless_link):
         parsed_url = urlparse(vless_link)
         params = parse_qs(parsed_url.query)
 
-        # 生成随机名称
-        random_name = f"Node-{str(uuid.uuid4())[:8]}"
+        # 生成基础名称
+        base_name = f"Node-{str(uuid.uuid4())[:8]}"
+        # 获取国旗 emoji
+        server = parsed_url.hostname.strip()
+        emoji = get_country_emoji(server)
+        # 组合名称和国旗
+        random_name = f"{emoji} {base_name}"
         # 设置加密方式，VLESS 默认使用 none
         encryption = params.get('encryption', ['none'])[0]
         security = params.get('security', ['tls'])[0]  # 默认使用 tls
@@ -165,9 +185,9 @@ def decode_ss_link(ss_link):
         if '#' in ss_link:
             ss_link = ss_link.split('#', 1)[0]
         
-        # 生成随机名称
-        random_name = f"Node-{str(uuid.uuid4())[:8]}"
-            
+        # 生成基础名称
+        base_name = f"Node-{str(uuid.uuid4())[:8]}"
+        
         # Try to decode the main part
         try:
             decoded = base64.b64decode(ss_link).decode('utf-8')
@@ -197,17 +217,14 @@ def decode_ss_link(ss_link):
         if cipher.startswith('ss') and cipher != 'ssr':
             cipher = cipher.replace('ss', '', 1)
             cipher = cipher.strip('-')
-        # Clash 和 sing-box 支持的加密方式列表
-        supported_ciphers = [
-            'aes-128-gcm', 'aes-256-gcm', 'chacha20-ietf-poly1305',
-            '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm'
-        ]
         if cipher not in supported_ciphers:
             logging.warning(f"SS节点加密方式 {cipher} 不被Clash和sing-box同时支持，已丢弃")
             return None
+        # 添加国旗 emoji
+        emoji = get_country_emoji(server)
         return {
             'type': 'ss',
-            'name': random_name,
+            'name': f"{emoji} {base_name}",
             'server': server,
             'port': int(port),
             'cipher': cipher,
@@ -224,15 +241,17 @@ def decode_trojan_link(trojan_link):
         parsed_url = urlparse(trojan_link)
         params = parse_qs(parsed_url.query)
 
-        # 生成随机名称
-        random_name = f"Node-{str(uuid.uuid4())[:8]}"
+        # 生成基础名称
+        base_name = f"Node-{str(uuid.uuid4())[:8]}"
+        # 获取国旗 emoji
+        emoji = get_country_emoji(parsed_url.hostname)
         # 检查必要字段
         if not parsed_url.hostname or not parsed_url.port or not parsed_url.username:
             return None
             
         node = {
             'type': 'trojan',
-            'name': random_name,
+            'name': f"{emoji} {base_name}",
             'server': parsed_url.hostname.strip(),
             'port': int(parsed_url.port),
             'password': parsed_url.username,
@@ -322,15 +341,15 @@ def decode_ssr_link(ssr_link):
                     except:
                         params[key] = value
 
-        # 生成随机名称
-        random_name = f"Node-{str(uuid.uuid4())[:8]}"
+        # 生成基础名称
+        base_name = f"Node-{str(uuid.uuid4())[:8]}"
+        # 获取国旗 emoji
+        emoji = get_country_emoji(server)
+        # 组合名称和国旗
+        random_name = f"{emoji} {base_name}"
         # Construct node
         cipher = method.lower()
-        # Clash 和 sing-box 支持的加密方式列表
-        supported_ciphers = [
-            'aes-128-gcm', 'aes-256-gcm', 'chacha20-ietf-poly1305',
-            '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm'
-        ]
+
         if cipher not in supported_ciphers:
             logging.warning(f"SSR节点加密方式 {cipher} 不被Clash和sing-box同时支持，已丢弃")
             return None
@@ -363,8 +382,12 @@ def decode_hysteria2_link(hy2_link):
         parsed_url = urlparse(hy2_link)
         params = parse_qs(parsed_url.query)
 
-        # 生成随机名称
-        random_name = f"Node-{str(uuid.uuid4())[:8]}"
+        # 生成基础名称
+        base_name = f"Node-{str(uuid.uuid4())[:8]}"
+        # 获取国旗 emoji
+        emoji = get_country_emoji(parsed_url.hostname)
+        # 组合名称和国旗
+        random_name = f"{emoji} {base_name}"
         node = {
             'type': 'hysteria2',
             'name': random_name,
@@ -400,6 +423,26 @@ from threading import Lock
 
 _url_lock = Lock()
 
+def get_country_emoji(ip_address):
+    try:
+        ip_address = socket.gethostbyname(ip_address)
+        # 查询 IP 地址的地理位置信息
+        response = reader.country(ip_address)
+        # 获取国家代码
+        country_code = response.country.iso_code
+        # 将国家代码转换为 emoji
+        if country_code:
+            # 国家代码转换为 emoji
+            emoji = chr(ord(country_code[0]) + 127397) + chr(ord(country_code[1]) + 127397)
+            logging.debug(f"{ip_address} emoji is {emoji}")
+            return emoji
+        else:
+            logging.debug(f"{ip_address} emoji is None")
+            return "🌍"
+    except Exception as e:
+        logging.error(f"Error getting country emoji for {ip_address}: {e}")
+        return "🌍"
+
 def decode_url_to_nodes(url):
     try:
         # 使用锁确保多进程环境下URL请求安全
@@ -419,8 +462,14 @@ def decode_url_to_nodes(url):
         try:
             yaml_obj = yaml.safe_load(decoded_content)
             if isinstance(yaml_obj, dict) and 'proxies' in yaml_obj and isinstance(yaml_obj['proxies'], list):
-                logging.info('检测到 YAML 格式，直接返回 proxies 字段内容')
-                return yaml_obj['proxies']
+                logging.info('检测到 YAML 格式，为节点添加国旗')
+                proxies = yaml_obj['proxies']
+                # 为每个节点添加国旗
+                for proxy in proxies:
+                    if 'server' in proxy and 'name' in proxy:
+                        emoji = get_country_emoji(proxy['server'])
+                        proxy['name'] = f"{emoji} {proxy['name']}"
+                return proxies
         except Exception as e:
             pass
 
@@ -433,8 +482,13 @@ def decode_url_to_nodes(url):
                 try:
                     if line.startswith('vmess://'):
                         node_data = json.loads(base64.b64decode(line[8:]).decode())
-                        # 生成随机名称
-                        random_name = f"Node-{str(uuid.uuid4())[:8]}"
+                        # 生成基础名称
+                        base_name = f"Node-{str(uuid.uuid4())[:8]}"
+                        # 获取国旗 emoji
+                        server = node_data.get('add', '').strip()
+                        emoji = get_country_emoji(server)
+                        # 组合名称和国旗
+                        random_name = f"{emoji} {base_name}"
                         # 设置默认加密方式为 auto，确保与 Clash 兼容
                         cipher = node_data.get('security', 'auto')
                         # 如果加密方式为 none，改为 auto
