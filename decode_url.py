@@ -15,6 +15,50 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def decode_vless_link(vless_link):
     """Parse VLESS protocol URL and return Clash-compatible format"""
     try:
+        # 尝试解析为YAML格式
+        try:
+            node_yaml = yaml.safe_load(vless_link)
+            if isinstance(node_yaml, dict) and node_yaml.get('type') == 'vless':
+                node = {
+                    'type': 'vless',
+                    'name': node_yaml.get('name', f"Node-{str(uuid.uuid4())[:8]}"),
+                    'server': node_yaml['server'],
+                    'port': int(node_yaml['port']),
+                    'uuid': node_yaml['uuid'],
+                    'network': node_yaml.get('network', 'tcp'),
+                    'tls': node_yaml.get('tls', False),
+                    'udp': node_yaml.get('udp', True),
+                    'skip-cert-verify': node_yaml.get('skip-cert-verify', True),
+                }
+                if 'flow' in node_yaml:
+                    node['flow'] = node_yaml['flow']
+                if 'servername' in node_yaml:
+                    node['sni'] = node_yaml['servername']
+                
+                # 根据不同传输方式添加对应配置
+                if node['network'] == 'ws' and 'ws-opts' in node_yaml:
+                    node['ws-opts'] = node_yaml['ws-opts']
+                elif node['network'] == 'grpc' and 'grpc-opts' in node_yaml:
+                    node['grpc-opts'] = node_yaml['grpc-opts']
+                elif node['network'] == 'http' and 'http-opts' in node_yaml:
+                    node['http-opts'] = node_yaml['http-opts']
+                elif node['network'] == 'h2' and 'h2-opts' in node_yaml:
+                    node['h2-opts'] = node_yaml['h2-opts']
+                    node['tls'] = True
+                elif node['network'] == 'quic' and 'quic-opts' in node_yaml:
+                    node['quic-opts'] = node_yaml['quic-opts']
+                
+                # 支持 reality
+                if 'reality-opts' in node_yaml:
+                    node['reality-opts'] = node_yaml['reality-opts']
+                if 'client-fingerprint' in node_yaml:
+                    node['client-fingerprint'] = node_yaml['client-fingerprint']
+                
+                return node
+        except:
+            pass
+
+        # 如果不是YAML格式，按URL格式解析
         parsed_url = urlparse(vless_link)
         params = parse_qs(parsed_url.query)
 
@@ -23,11 +67,13 @@ def decode_vless_link(vless_link):
         # 设置加密方式，VLESS 默认使用 none
         encryption = params.get('encryption', ['none'])[0]
         security = params.get('security', ['tls'])[0]  # 默认使用 tls
-        
+        # 支持 flow 参数（例如 xtls-rprx-vision）
+        flow = params.get('flow', [''])[0]
+
         # 检查必要字段
         if not parsed_url.hostname or not parsed_url.port or not parsed_url.username:
             return None
-            
+
         node = {
             'type': 'vless',
             'name': random_name,
@@ -40,11 +86,17 @@ def decode_vless_link(vless_link):
             'skip-cert-verify': True,  # 默认跳过证书验证以提高连接成功率
             'alpn': ['h2', 'http/1.1'],  # 添加 ALPN 支持
         }
+        if flow:
+            node['flow'] = flow
+
         sni = params.get('sni', [''])[0] or parsed_url.hostname
         if sni:
             node['sni'] = sni
-        if node['network'] == 'ws':
-            ws_opts = {'path': params.get('path', [''])[0]}
+
+        # 根据不同传输方式添加对应配置
+        net = node.get('network')
+        if net == 'ws':
+            ws_opts = {'path': params.get('path', ['/'])[0]}
             headers = {}
             if 'host' in params:
                 headers['Host'] = params['host'][0]
@@ -54,6 +106,50 @@ def decode_vless_link(vless_link):
             if headers:
                 ws_opts['headers'] = headers
             node['ws-opts'] = ws_opts
+        elif net == 'grpc':
+            grpc_opts = {}
+            service_name = params.get('serviceName', [''])[0]
+            if service_name:
+                grpc_opts['grpc-service-name'] = service_name
+            if grpc_opts:
+                node['grpc-opts'] = grpc_opts
+        elif net == 'http':
+            http_opts = {}
+            if 'path' in params:
+                http_opts['path'] = [params['path'][0]]
+            if 'host' in params:
+                http_opts['headers'] = {'Host': params['host'][0]}
+            if http_opts:
+                node['http-opts'] = http_opts
+        elif net == 'h2':
+            h2_opts = {}
+            if 'path' in params:
+                h2_opts['path'] = params['path'][0]
+            if 'host' in params:
+                h2_opts['host'] = [params['host'][0]]
+            if h2_opts:
+                node['h2-opts'] = h2_opts
+            node['tls'] = True
+        elif net == 'quic':
+            quic_opts = {}
+            if 'quicSecurity' in params:
+                quic_opts['security'] = params['quicSecurity'][0]
+            if 'key' in params:
+                quic_opts['key'] = params['key'][0]
+            if 'type' in params:
+                quic_opts['type'] = params['type'][0]
+            if quic_opts:
+                node['quic-opts'] = quic_opts
+
+        # 支持 reality
+        if security == 'reality':
+            node['reality-opts'] = {
+                'public-key': params.get('pbk', [''])[0],
+                'short-id': params.get('sid', [''])[0]
+            }
+            if 'fp' in params:
+                node['client-fingerprint'] = params['fp'][0]
+
         return node
     except Exception as e:
         logging.error(f"Error parsing VLESS link: {e}")
@@ -148,8 +244,10 @@ def decode_trojan_link(trojan_link):
         }
         if 'client-fingerprint' in params:
             node['client-fingerprint'] = params['client-fingerprint'][0]
+            
+        # 处理不同的传输协议
         if node['network'] == 'ws':
-            ws_opts = {'path': params.get('path', [''])[0]}
+            ws_opts = {'path': params.get('path', ['/'])[0]}
             headers = {}
             if 'host' in params:
                 headers['Host'] = params['host'][0]
@@ -159,6 +257,27 @@ def decode_trojan_link(trojan_link):
             if headers:
                 ws_opts['headers'] = headers
             node['ws-opts'] = ws_opts
+        elif node['network'] == 'grpc':
+            grpc_opts = {}
+            service_name = params.get('serviceName', [''])[0]
+            if service_name:
+                grpc_opts['grpc-service-name'] = service_name
+            node['grpc-opts'] = grpc_opts
+        elif node['network'] == 'http':
+            http_opts = {}
+            if 'path' in params:
+                http_opts['path'] = [params['path'][0]]
+            if 'host' in params:
+                http_opts['headers'] = {'Host': params['host'][0]}
+            node['http-opts'] = http_opts
+        elif node['network'] == 'h2':
+            h2_opts = {}
+            if 'path' in params:
+                h2_opts['path'] = params['path'][0]
+            if 'host' in params:
+                h2_opts['host'] = [params['host'][0]]
+            node['h2-opts'] = h2_opts
+            node['tls'] = True
         return node
     except Exception as e:
         logging.error(f"Error parsing Trojan link: {e}")
@@ -257,21 +376,39 @@ def decode_hysteria2_link(hy2_link):
             'tls': True,
             'alpn': ['h3'],
             'udp': True,
-            'hop-interval': 10,
+            'hop-interval': int(params.get('hop', ['10'])[0]),
         }
+        
+        # 添加可选的 Hysteria2 特定参数
+        if 'obfs' in params:
+            node['obfs'] = params['obfs'][0]
+        if 'obfs-password' in params:
+            node['obfs-password'] = params['obfs-password'][0]
+        if 'client-fingerprint' in params:
+            node['client-fingerprint'] = params['client-fingerprint'][0]
+        if 'download-bandwidth' in params:
+            node['down'] = int(params['download-bandwidth'][0])
+        if 'upload-bandwidth' in params:
+            node['up'] = int(params['upload-bandwidth'][0])
 
         return node
     except Exception as e:
         logging.error(f"Error parsing Hysteria2 link: {e}")
         return None
 
+from threading import Lock
+
+_url_lock = Lock()
+
 def decode_url_to_nodes(url):
     try:
-        # Fetch content from URL
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an exception for bad status codes
-        
-        # Get content and decode if it's base64 encoded
+        # 使用锁确保多进程环境下URL请求安全
+        with _url_lock:
+            # Fetch content from URL
+            response = requests.get(url)
+            response.raise_for_status()  # Raise an exception for bad status codes
+            
+            # Get content and decode if it's base64 encoded
         content = response.text.strip()
         try:
             decoded_content = base64.b64decode(content).decode('utf-8')
@@ -322,18 +459,58 @@ def decode_url_to_nodes(url):
                         # 支持 network 字段
                         if 'net' in node_data:
                             node['network'] = node_data['net']
-                        # 支持 ws-opts
+                            
+                        # 根据不同传输方式添加对应配置
                         if node.get('network') == 'ws':
-                            ws_opts = {}
-                            if 'path' in node_data:
-                                ws_opts['path'] = node_data['path']
+                            ws_opts = {'path': node_data.get('path', '/')}
+                            headers = {}
                             if 'host' in node_data:
-                                ws_opts['headers'] = {'Host': node_data['host']}
-                            if ws_opts:
-                                node['ws-opts'] = ws_opts
+                                headers['Host'] = node_data['host']
+                            if headers:
+                                ws_opts['headers'] = headers
+                            node['ws-opts'] = ws_opts
+                        elif node.get('network') == 'grpc':
+                            grpc_opts = {}
+                            if 'serviceName' in node_data:
+                                grpc_opts['grpc-service-name'] = node_data['serviceName']
+                            node['grpc-opts'] = grpc_opts
+                        elif node.get('network') == 'http':
+                            http_opts = {}
+                            if 'path' in node_data:
+                                http_opts['path'] = [node_data['path']]
+                            if 'host' in node_data:
+                                http_opts['headers'] = {'Host': node_data['host']}
+                            node['http-opts'] = http_opts
+                        elif node.get('network') == 'h2':
+                            h2_opts = {}
+                            if 'path' in node_data:
+                                h2_opts['path'] = node_data['path']
+                            if 'host' in node_data:
+                                h2_opts['host'] = [node_data['host']]
+                            node['h2-opts'] = h2_opts
+                            node['tls'] = True
+                        elif node.get('network') == 'quic':
+                            quic_opts = {}
+                            if 'quicSecurity' in node_data:
+                                quic_opts['security'] = node_data['quicSecurity']
+                            if 'key' in node_data:
+                                quic_opts['key'] = node_data['key']
+                            if 'type' in node_data:
+                                quic_opts['type'] = node_data['type']
+                            node['quic-opts'] = quic_opts
+                        
                         # 支持 sni 字段
                         if 'sni' in node_data:
                             node['sni'] = node_data['sni']
+                        
+                        # 支持 reality
+                        if node_data.get('security') == 'reality':
+                            node['reality-opts'] = {
+                                'public-key': node_data.get('pbk', ''),
+                                'short-id': node_data.get('sid', '')
+                            }
+                            if 'fp' in node_data:
+                                node['client-fingerprint'] = node_data['fp']
                         nodes.append(node)
                     elif line.startswith('vless://'):
                         node = decode_vless_link(line)

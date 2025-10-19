@@ -114,12 +114,16 @@ def run(index, shared_list):
     node_name = set()
     for url in url_lists:
         try:
-            nodes = decode_url.decode_url_to_nodes(url)
-            new_proxies.extend(nodes)
-            logging.info(f"Successfully parsed {len(nodes)} nodes from {url}")
-            if len(nodes) > 0:
-                continue
+            # 使用 lock 确保多进程调用时数据安全
+            with threading.Lock():
+                nodes = decode_url.decode_url_to_nodes(url)
+                if nodes:
+                    new_proxies.extend(nodes)
+                    logging.info(f"Successfully parsed {len(nodes)} nodes from {url}")
+                    if len(nodes) > 0:
+                        continue
         except Exception as e:
+            logging.error(f"Error processing URL {url}: {str(e)}")
             pass
         url_quote = urllib.parse.quote(url, safe='')
         # config_quote = urllib.parse.quote(config_url, safe='')
@@ -257,7 +261,7 @@ def split_node(n, shared_list):
     if shared_list is None:
         logging.error("shared_list is None")
         return
-    if n > 10:
+    if n > 100:
         return
     for list in shared_list:
         name = list['name']
