@@ -135,18 +135,21 @@ def decode_vless_link(vless_link):
                 node['grpc-opts'] = grpc_opts
         elif net == 'http':
             http_opts = {}
-            if 'path' in params:
-                http_opts['path'] = [params['path'][0]]
-            if 'host' in params:
-                http_opts['headers'] = {'Host': params['host'][0]}
+            # 只在参数非空时才添加到数组
+            if 'path' in params and params['path'][0].strip():
+                http_opts['path'] = [params['path'][0].strip()]
+            if 'host' in params and params['host'][0].strip():
+                http_opts['headers'] = {'Host': [params['host'][0].strip()]}  # Host 需要是一个数组
+            # 只有当http_opts有内容时才添加
             if http_opts:
                 node['http-opts'] = http_opts
         elif net == 'h2':
             h2_opts = {}
-            if 'path' in params:
-                h2_opts['path'] = params['path'][0]
-            if 'host' in params:
-                h2_opts['host'] = [params['host'][0]]
+            # 确保path和host参数非空
+            if 'path' in params and params['path'][0].strip():
+                h2_opts['path'] = params['path'][0].strip()
+            if 'host' in params and params['host'][0].strip():
+                h2_opts['host'] = [params['host'][0].strip()]
             if h2_opts:
                 node['h2-opts'] = h2_opts
             node['tls'] = True
@@ -284,18 +287,23 @@ def decode_trojan_link(trojan_link):
             node['grpc-opts'] = grpc_opts
         elif node['network'] == 'http':
             http_opts = {}
-            if 'path' in params:
-                http_opts['path'] = [params['path'][0]]
-            if 'host' in params:
-                http_opts['headers'] = {'Host': params['host'][0]}
-            node['http-opts'] = http_opts
+            # 只在参数非空时才添加到数组
+            if 'path' in params and params['path'][0].strip():
+                http_opts['path'] = [params['path'][0].strip()]
+            if 'host' in params and params['host'][0].strip():
+                http_opts['headers'] = {'Host': [params['host'][0].strip()]}  # Host 需要是一个数组
+            # 只有当http_opts有内容时才添加
+            if http_opts:
+                node['http-opts'] = http_opts
         elif node['network'] == 'h2':
             h2_opts = {}
-            if 'path' in params:
-                h2_opts['path'] = params['path'][0]
-            if 'host' in params:
-                h2_opts['host'] = [params['host'][0]]
-            node['h2-opts'] = h2_opts
+            # 确保path和host参数非空
+            if 'path' in params and params['path'][0].strip():
+                h2_opts['path'] = params['path'][0].strip()
+            if 'host' in params and params['host'][0].strip():
+                h2_opts['host'] = [params['host'][0].strip()]
+            if h2_opts:
+                node['h2-opts'] = h2_opts
             node['tls'] = True
         return node
     except Exception as e:
@@ -530,19 +538,24 @@ def decode_url_to_nodes(url):
                             node['grpc-opts'] = grpc_opts
                         elif node.get('network') == 'http':
                             http_opts = {}
-                            if 'path' in node_data:
-                                http_opts['path'] = [node_data['path']]
-                            if 'host' in node_data:
-                                http_opts['headers'] = {'Host': node_data['host']}
-                            node['http-opts'] = http_opts
+                            # 只在参数非空时才添加到数组
+                            if 'path' in node_data and node_data['path'].strip():
+                                http_opts['path'] = [node_data['path'].strip()]
+                            if 'host' in node_data and node_data['host'].strip():
+                                http_opts['headers'] = {'Host': [node_data['host'].strip()]}  # Host 需要是一个数组
+                            # 只有当http_opts有内容时才添加
+                            if http_opts:
+                                node['http-opts'] = http_opts
                         elif node.get('network') == 'h2':
                             h2_opts = {}
-                            if 'path' in node_data:
-                                h2_opts['path'] = node_data['path']
-                            if 'host' in node_data:
-                                h2_opts['host'] = [node_data['host']]
-                            node['h2-opts'] = h2_opts
-                            node['tls'] = True
+                            # 确保path和host参数非空
+                            if 'path' in node_data and node_data['path'].strip():
+                                h2_opts['path'] = node_data['path'].strip()
+                            if 'host' in node_data and node_data['host'].strip():
+                                h2_opts['host'] = [node_data['host'].strip()]
+                            if h2_opts:
+                                node['h2-opts'] = h2_opts
+                                node['tls'] = True
                         elif node.get('network') == 'quic':
                             quic_opts = {}
                             if 'quicSecurity' in node_data:
