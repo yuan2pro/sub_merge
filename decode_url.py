@@ -24,16 +24,21 @@ def decode_vless_link(vless_link):
         encryption = params.get('encryption', ['none'])[0]
         security = params.get('security', ['tls'])[0]  # 默认使用 tls
         
+        # 检查必要字段
+        if not parsed_url.hostname or not parsed_url.port or not parsed_url.username:
+            return None
+            
         node = {
             'type': 'vless',
             'name': random_name,
-            'server': parsed_url.hostname,
+            'server': parsed_url.hostname.strip(),
             'port': int(parsed_url.port),
             'uuid': parsed_url.username,
             'tls': True if security == 'tls' else False,
             'network': params.get('type', ['tcp'])[0],
             'udp': True,
-            'skip-cert-verify': params.get('allowInsecure', ['0'])[0] == '1',
+            'skip-cert-verify': True,  # 默认跳过证书验证以提高连接成功率
+            'alpn': ['h2', 'http/1.1'],  # 添加 ALPN 支持
         }
         sni = params.get('sni', [''])[0] or parsed_url.hostname
         if sni:
@@ -125,16 +130,21 @@ def decode_trojan_link(trojan_link):
 
         # 生成随机名称
         random_name = f"Node-{str(uuid.uuid4())[:8]}"
+        # 检查必要字段
+        if not parsed_url.hostname or not parsed_url.port or not parsed_url.username:
+            return None
+            
         node = {
             'type': 'trojan',
             'name': random_name,
-            'server': parsed_url.hostname,
+            'server': parsed_url.hostname.strip(),
             'port': int(parsed_url.port),
             'password': parsed_url.username,
             'sni': params.get('sni', [''])[0] or parsed_url.hostname,
-            'skip-cert-verify': params.get('allowInsecure', ['0'])[0] == '1',
+            'skip-cert-verify': True,  # 默认跳过证书验证以提高连接成功率
             'udp': True,
             'network': params.get('type', ['tcp'])[0],
+            'alpn': ['h2', 'http/1.1'],  # 添加 ALPN 支持
         }
         if 'client-fingerprint' in params:
             node['client-fingerprint'] = params['client-fingerprint'][0]
@@ -293,17 +303,21 @@ def decode_url_to_nodes(url):
                         # 如果加密方式为 none，改为 auto
                         if cipher == 'none':
                             cipher = 'auto'
+                        # 检查必要字段
+                        if not node_data.get('add') or not node_data.get('port') or not node_data.get('id'):
+                            continue
+                            
                         node = {
                             'type': 'vmess',
                             'name': random_name,
-                            'server': node_data.get('add', ''),
+                            'server': node_data.get('add', '').strip(),
                             'port': int(node_data.get('port', 0)),
                             'uuid': node_data.get('id', ''),
                             'alterId': int(node_data.get('aid', 0)),
                             'cipher': cipher,
                             'tls': True if node_data.get('tls') == 'tls' else False,
                             'udp': True,
-                            'skip-cert-verify': node_data.get('verify_cert', True) == False,
+                            'skip-cert-verify': True,  # 默认跳过证书验证以提高连接成功率
                         }
                         # 支持 network 字段
                         if 'net' in node_data:
