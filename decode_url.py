@@ -28,24 +28,27 @@ def decode_vless_link(vless_link):
             'type': 'vless',
             'name': random_name,
             'server': parsed_url.hostname,
-            'port': int(parsed_url.port),
+            'port': str(parsed_url.port),
             'uuid': parsed_url.username,
-            'network': params.get('type', ['tcp'])[0],
             'tls': True if security == 'tls' else False,
-            'udp': True,  # 启用 UDP 支持
+            'network': params.get('type', ['tcp'])[0],
+            'udp': True,
             'skip-cert-verify': params.get('allowInsecure', ['0'])[0] == '1',
-            'servername': params.get('sni', [''])[0] or parsed_url.hostname  # 优先使用 SNI，否则使用服务器地址
         }
-
-        # Add ws-opts if network is websocket
+        sni = params.get('sni', [''])[0] or parsed_url.hostname
+        if sni:
+            node['sni'] = sni
         if node['network'] == 'ws':
-            node['ws-opts'] = {
-                'path': params.get('path', [''])[0],
-                'headers': {
-                    'Host': params.get('host', [''])[0]
-                }
-            }
-
+            ws_opts = {'path': params.get('path', [''])[0]}
+            headers = {}
+            if 'host' in params:
+                headers['Host'] = params['host'][0]
+            for k, v in params.items():
+                if k.lower().startswith('header-'):
+                    headers[k[7:]] = v[0]
+            if headers:
+                ws_opts['headers'] = headers
+            node['ws-opts'] = ws_opts
         return node
     except Exception as e:
         logging.error(f"Error parsing VLESS link: {e}")
@@ -105,10 +108,10 @@ def decode_ss_link(ss_link):
             'type': 'ss',
             'name': random_name,
             'server': server,
-            'port': int(port),
+            'port': str(port),
             'cipher': cipher,
             'password': password,
-            'udp': True  # 启用 UDP 支持
+            'udp': True
         }
     except Exception as e:
         logging.error(f"Error parsing SS link: {e}")
@@ -126,25 +129,26 @@ def decode_trojan_link(trojan_link):
             'type': 'trojan',
             'name': random_name,
             'server': parsed_url.hostname,
-            'port': int(parsed_url.port),
+            'port': str(parsed_url.port),
             'password': parsed_url.username,
-            'udp': True,  # 启用 UDP 支持
-            'sni': params.get('sni', [''])[0] or parsed_url.hostname,  # 优先使用 SNI，否则使用服务器地址
+            'sni': params.get('sni', [''])[0] or parsed_url.hostname,
             'skip-cert-verify': params.get('allowInsecure', ['0'])[0] == '1',
+            'udp': True,
             'network': params.get('type', ['tcp'])[0],
-            'tls': True,  # Trojan 必须启用 TLS
-            'alpn': ['h2', 'http/1.1']  # 添加 ALPN 支持
         }
-
-        # Add ws-opts if network is websocket
+        if 'client-fingerprint' in params:
+            node['client-fingerprint'] = params['client-fingerprint'][0]
         if node['network'] == 'ws':
-            node['ws-opts'] = {
-                'path': params.get('path', [''])[0],
-                'headers': {
-                    'Host': params.get('host', [''])[0]
-                }
-            }
-
+            ws_opts = {'path': params.get('path', [''])[0]}
+            headers = {}
+            if 'host' in params:
+                headers['Host'] = params['host'][0]
+            for k, v in params.items():
+                if k.lower().startswith('header-'):
+                    headers[k[7:]] = v[0]
+            if headers:
+                ws_opts['headers'] = headers
+            node['ws-opts'] = ws_opts
         return node
     except Exception as e:
         logging.error(f"Error parsing Trojan link: {e}")
@@ -205,12 +209,12 @@ def decode_ssr_link(ssr_link):
             'type': 'ssr',
             'name': random_name,
             'server': server,
-            'port': int(port),
+            'port': str(port),
             'cipher': cipher,
             'password': password,
-            'protocol': protocol.lower(),  # 确保协议为小写
-            'obfs': obfs.lower(),  # 确保混淆为小写
-            'udp': True  # 启用 UDP 支持
+            'protocol': protocol.lower(),
+            'obfs': obfs.lower(),
+            'udp': True
         }
 
         # Add optional parameters if they exist
@@ -236,14 +240,14 @@ def decode_hysteria2_link(hy2_link):
             'type': 'hysteria2',
             'name': random_name,
             'server': parsed_url.hostname,
-            'port': int(parsed_url.port),
-            'password': parsed_url.username,  # Hysteria2 使用 password 而不是 uuid
-            'sni': params.get('sni', [''])[0] or parsed_url.hostname,  # 优先使用 SNI，否则使用服务器地址
+            'port': str(parsed_url.port),
+            'password': parsed_url.username,
+            'sni': params.get('sni', [''])[0] or parsed_url.hostname,
             'skip-cert-verify': params.get('insecure', ['0'])[0] == '1',
-            'tls': True,  # Hysteria2 必须启用 TLS
-            'alpn': ['h3'],  # Hysteria2 默认使用 HTTP/3
-            'udp': True,  # 启用 UDP 支持
-            'hop-interval': 10,  # 添加默认的连接保活间隔
+            'tls': True,
+            'alpn': ['h3'],
+            'udp': True,
+            'hop-interval': 10,
         }
 
         return node
@@ -297,8 +301,23 @@ def decode_url_to_nodes(url):
                             'uuid': node_data.get('id', ''),
                             'alterId': int(node_data.get('aid', 0)),
                             'cipher': cipher,
-                            'tls': True if node_data.get('tls') == 'tls' else False
+                            'tls': True if node_data.get('tls') == 'tls' else False,
                         }
+                        # 支持 network 字段
+                        if 'net' in node_data:
+                            node['network'] = node_data['net']
+                        # 支持 ws-opts
+                        if node.get('network') == 'ws':
+                            ws_opts = {}
+                            if 'path' in node_data:
+                                ws_opts['path'] = node_data['path']
+                            if 'host' in node_data:
+                                ws_opts['headers'] = {'Host': node_data['host']}
+                            if ws_opts:
+                                node['ws-opts'] = ws_opts
+                        # 支持 sni 字段
+                        if 'sni' in node_data:
+                            node['sni'] = node_data['sni']
                         nodes.append(node)
                     elif line.startswith('vless://'):
                         node = decode_vless_link(line)
