@@ -93,6 +93,14 @@ def decode_ss_link(ss_link):
         if cipher.startswith('ss') and cipher != 'ssr':
             cipher = cipher.replace('ss', '', 1)
             cipher = cipher.strip('-')
+        # Clash 和 sing-box 支持的加密方式列表
+        supported_ciphers = [
+            'aes-128-gcm', 'aes-256-gcm', 'chacha20-ietf-poly1305',
+            '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm'
+        ]
+        if cipher not in supported_ciphers:
+            logging.warning(f"SS节点加密方式 {cipher} 不被Clash和sing-box同时支持，已丢弃")
+            return None
         return {
             'type': 'ss',
             'name': random_name,
@@ -184,12 +192,21 @@ def decode_ssr_link(ssr_link):
         # 生成随机名称
         random_name = f"Node-{str(uuid.uuid4())[:8]}"
         # Construct node
+        cipher = method.lower()
+        # Clash 和 sing-box 支持的加密方式列表
+        supported_ciphers = [
+            'aes-128-gcm', 'aes-256-gcm', 'chacha20-ietf-poly1305',
+            '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm'
+        ]
+        if cipher not in supported_ciphers:
+            logging.warning(f"SSR节点加密方式 {cipher} 不被Clash和sing-box同时支持，已丢弃")
+            return None
         node = {
             'type': 'ssr',
             'name': random_name,
             'server': server,
             'port': int(port),
-            'cipher': method.lower(),  # 确保加密方式为小写
+            'cipher': cipher,
             'password': password,
             'protocol': protocol.lower(),  # 确保协议为小写
             'obfs': obfs.lower(),  # 确保混淆为小写
@@ -309,7 +326,7 @@ def decode_url_to_nodes(url):
 
 if __name__ == "__main__":
     try:
-        nodes = decode_url_to_nodes(url = "https://raw.githubusercontent.com/asakura42/vss/refs/heads/master/output.txt")
+        nodes = decode_url_to_nodes(url = "https://raw.githubusercontent.com/ripaojiedian/freenode/main/sub")
         yaml_output = yaml.dump({'proxies': nodes}, allow_unicode=True)
         print(yaml_output)  # 保留这一个print用于输出YAML内容
     except ImportError as e:
