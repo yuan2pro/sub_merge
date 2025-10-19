@@ -14,6 +14,8 @@ import requests
 import yaml
 from requests.adapters import HTTPAdapter
 
+import decode_url
+
 # 载入 MaxMind 提供的数据库文件
 reader = geoip2.database.Reader('GeoLite2-Country.mmdb')
 
@@ -111,6 +113,13 @@ def run(index, shared_list):
     node_list = {}
     node_name = set()
     for url in url_lists:
+        try:
+            nodes = decode_url.decode_url_to_nodes(url)
+            new_proxies.extend(nodes)
+            logging.info(f"Successfully parsed {len(nodes)} nodes from {url}")
+            continue
+        except Exception as e:
+            pass
         url_quote = urllib.parse.quote(url, safe='')
         # config_quote = urllib.parse.quote(config_url, safe='')
         # include_quote = urllib.parse.quote(include, safe='')
@@ -283,4 +292,10 @@ if __name__ == '__main__':
     logging.info("%d threads actived", threading.active_count() - 1)
     for thread in thread_list:
         thread.join()
+    
+    # 输出最终的节点统计
+    logging.info("=== Final Summary ===")
+    logging.info(f"Total nodes collected: {len(shared_list)}")
+    logging.info(f"Average nodes per file: {len(shared_list) // t_num}")
+    logging.info(f"Number of split files: {t_num}")
     logging.info("All processes have finished.")
