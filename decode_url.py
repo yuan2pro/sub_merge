@@ -88,12 +88,17 @@ def decode_ss_link(ss_link):
             else:
                 raise ValueError("Invalid SS link format")
         
+        # 修正 cipher 字段，去除可能的 'ss' 前缀
+        cipher = method.lower()
+        if cipher.startswith('ss') and cipher != 'ssr':
+            cipher = cipher.replace('ss', '', 1)
+            cipher = cipher.strip('-')
         return {
             'type': 'ss',
             'name': random_name,
             'server': server,
             'port': int(port),
-            'cipher': method.lower(),  # 确保加密方式为小写
+            'cipher': cipher,
             'password': password,
             'udp': True  # 启用 UDP 支持
         }
