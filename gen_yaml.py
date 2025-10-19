@@ -254,6 +254,11 @@ def split_node(n, shared_list):
     node_list = {}
     yaml_file = "./sub/" + str(n) + ".yaml"
     name_list = []
+    if shared_list is None:
+        logging.error("shared_list is None")
+        return
+    if n > 10:
+        return
     for list in shared_list:
         name = list['name']
         if name not in name_list:
