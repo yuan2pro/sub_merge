@@ -28,7 +28,7 @@ def decode_vless_link(vless_link):
             'type': 'vless',
             'name': random_name,
             'server': parsed_url.hostname,
-            'port': str(parsed_url.port),
+            'port': int(parsed_url.port),
             'uuid': parsed_url.username,
             'tls': True if security == 'tls' else False,
             'network': params.get('type', ['tcp'])[0],
@@ -108,7 +108,7 @@ def decode_ss_link(ss_link):
             'type': 'ss',
             'name': random_name,
             'server': server,
-            'port': str(port),
+            'port': int(port),
             'cipher': cipher,
             'password': password,
             'udp': True
@@ -129,7 +129,7 @@ def decode_trojan_link(trojan_link):
             'type': 'trojan',
             'name': random_name,
             'server': parsed_url.hostname,
-            'port': str(parsed_url.port),
+            'port': int(parsed_url.port),
             'password': parsed_url.username,
             'sni': params.get('sni', [''])[0] or parsed_url.hostname,
             'skip-cert-verify': params.get('allowInsecure', ['0'])[0] == '1',
@@ -209,7 +209,7 @@ def decode_ssr_link(ssr_link):
             'type': 'ssr',
             'name': random_name,
             'server': server,
-            'port': str(port),
+            'port': int(port),
             'cipher': cipher,
             'password': password,
             'protocol': protocol.lower(),
@@ -240,7 +240,7 @@ def decode_hysteria2_link(hy2_link):
             'type': 'hysteria2',
             'name': random_name,
             'server': parsed_url.hostname,
-            'port': str(parsed_url.port),
+            'port': int(parsed_url.port),
             'password': parsed_url.username,
             'sni': params.get('sni', [''])[0] or parsed_url.hostname,
             'skip-cert-verify': params.get('insecure', ['0'])[0] == '1',
@@ -302,6 +302,8 @@ def decode_url_to_nodes(url):
                             'alterId': int(node_data.get('aid', 0)),
                             'cipher': cipher,
                             'tls': True if node_data.get('tls') == 'tls' else False,
+                            'udp': True,
+                            'skip-cert-verify': node_data.get('verify_cert', True) == False,
                         }
                         # 支持 network 字段
                         if 'net' in node_data:
