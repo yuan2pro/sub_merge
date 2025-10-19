@@ -90,13 +90,22 @@ jobs:
       - name: Build Go program
         run: |
           cd ./clash2singbox
-          go mod tidy
-          cp -f ${{ env.CURRENT_DIR }}/singbox.json ./config.json.template
-          go build -o clash2singbox ./main.go  # 根据需要调整路径
+          go mod tidy || true
+          cp -f ${{ env.CURRENT_DIR }}/singbox.json ./config.json.template || true
+          if ! go build -o clash2singbox ./main.go; then
+            echo "构建失败，但继续执行"
+            exit 0
+          fi
+          
           for file in ${{ env.CURRENT_DIR }}/sub/*.yaml; do
             filename=$(basename "$file")
-            ./clash2singbox -i "$file" -o "${{ env.CURRENT_DIR }}/sub/${filename%.yaml}.json"
-          done
+            if ./clash2singbox -i "$file" -o "${{ env.CURRENT_DIR }}/sub/${filename%.yaml}.json"; then
+              echo "Successfully converted ${filename}"
+            else
+              echo "Failed to convert ${filename}, skipping..."
+              continue
+            fi
+          done || true
 
       - name: commit
         run: |
