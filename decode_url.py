@@ -247,7 +247,11 @@ def decode_ss_link(ss_link):
 
         # 对于2022协议，需要将password从base64解码并转换为hex格式
         if cipher.startswith('2022'):
-            password = base64.b64decode(password).hex()
+            decoded_key = base64.b64decode(password)
+            if len(decoded_key) != 32:
+                logging.warning(f"Invalid key length {len(decoded_key)} for {cipher}, expected 32 bytes. Skipping node.")
+                return None
+            password = decoded_key.hex()
 
         if cipher not in supported_ciphers:
             logging.warning(f"SS节点加密方式 {cipher} 不被Clash和sing-box同时支持，已丢弃")
