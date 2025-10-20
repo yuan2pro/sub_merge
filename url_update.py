@@ -2,6 +2,7 @@
 
 import json
 import logging
+import random
 import urllib.parse
 from datetime import datetime, timedelta
 
@@ -53,6 +54,7 @@ def write_url():
         if not raw_list[index]['enabled']:
             false_list.append(str(raw_list[index]['id']))
     all_url = "|".join(list(set(enabled_list)))
+    random.shuffle(url_list)
     file = open(url_file, 'w', encoding='utf-8')
     file.write(all_url)
     file.close()

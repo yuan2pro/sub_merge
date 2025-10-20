@@ -19,9 +19,9 @@ def merge_proxies(directory, output_file):
             os.remove(filepath)
 
     # 每1000条生成一个yaml文件
-    for i in range(0, len(all_proxies), 1000):
-        chunk = all_proxies[i:i+1000]
-        with open(f'sub/merged_proxies_{i//1000+1}.yaml', 'w', encoding='utf-8') as file:
+    for i in range(0, len(all_proxies), 100):
+        chunk = all_proxies[i:i+100]
+        with open(f'sub/merged_proxies_{i//100+1}.yaml', 'w', encoding='utf-8') as file:
             yaml.safe_dump({'proxies': chunk}, file, allow_unicode=True)
 
 # 使用示例
