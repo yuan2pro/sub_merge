@@ -6,6 +6,7 @@ import multiprocessing
 import random
 import socket
 import threading
+import time
 import urllib.parse
 
 import emoji
@@ -15,7 +16,6 @@ import yaml
 from requests.adapters import HTTPAdapter
 
 import decode_url
-import time
 
 # 载入 MaxMind 提供的数据库文件
 reader = geoip2.database.Reader('GeoLite2-Country.mmdb')
@@ -287,7 +287,7 @@ if __name__ == '__main__':
         p.start()
     logging.info("多进程已启动")
 
-    threshold = 10000  # 节点阈值，达到则停止所有子进程
+    threshold = 50000  # 节点阈值，达到则停止所有子进程
     try:
         # 监控子进程与 shared_list 长度
         while any(p.is_alive() for p in processes):
@@ -309,7 +309,7 @@ if __name__ == '__main__':
 
     logging.info("多进程已结束，当前节点数：%d", len(shared_list))
     random.shuffle(shared_list)
-    each_num = 100
+    each_num = 300
     thread_list = []
     t_num = len(shared_list) // each_num + 1
     for i in range(t_num):
