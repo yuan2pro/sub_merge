@@ -171,7 +171,16 @@ def decode_vless_link(vless_link):
                 'short-id': params.get('sid', [''])[0]
             }
             if 'fp' in params:
-                node['client-fingerprint'] = params['fp'][0]
+                node['utls'] = {
+                    'enabled': True,
+                    'fingerprint': params['fp'][0]
+                }
+            else:
+                # 默认使用chrome指纹以提高兼容性
+                node['utls'] = {
+                    'enabled': True,
+                    'fingerprint': 'chrome'
+                }
 
         return node
     except Exception as e:
@@ -220,6 +229,11 @@ def decode_ss_link(ss_link):
         if cipher.startswith('ss') and cipher != 'ssr':
             cipher = cipher.replace('ss', '', 1)
             cipher = cipher.strip('-')
+
+        # 对于2022协议，需要将password从base64解码并转换为hex格式
+        if cipher.startswith('2022'):
+            password = base64.b64decode(password).hex()
+
         if cipher not in supported_ciphers:
             logging.warning(f"SS节点加密方式 {cipher} 不被Clash和sing-box同时支持，已丢弃")
             return None
@@ -577,7 +591,16 @@ def decode_url_to_nodes(url):
                                 'short-id': node_data.get('sid', '')
                             }
                             if 'fp' in node_data:
-                                node['client-fingerprint'] = node_data['fp']
+                                node['utls'] = {
+                                    'enabled': True,
+                                    'fingerprint': node_data['fp']
+                                }
+                            else:
+                                # 默认使用chrome指纹以提高兼容性
+                                node['utls'] = {
+                                    'enabled': True,
+                                    'fingerprint': 'chrome'
+                                }
                         nodes.append(node)
                     elif line.startswith('vless://'):
                         node = decode_vless_link(line)
