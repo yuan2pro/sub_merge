@@ -19,10 +19,18 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Clash 和 sing-box 支持的加密方式列表
 supported_ciphers = [
-    'rc4-md5', 'aes-128-cfb', 'aes-128-gcm', 'aes-256-gcm', 
+    'rc4-md5', 'aes-128-cfb', 'aes-128-gcm', 'aes-256-gcm',
     'aes-256-cfb', 'chacha20-ietf-poly1305',
     '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm'
 ]
+
+# 支持的 XTLS flow 类型映射 (xtls-rprx-direct 已废弃，使用 xtls-rprx-origin 或移除)
+supported_xtls_flows = {
+    'xtls-rprx-vision': 'xtls-rprx-vision',
+    'xtls-rprx-origin': 'xtls-rprx-origin',
+    'xtls-rprx-origin-udp443': 'xtls-rprx-origin-udp443',
+    'xtls-rprx-direct': 'xtls-rprx-origin'  # 映射废弃的 direct 到 origin
+}
 
 def decode_vless_link(vless_link):
     """Parse VLESS protocol URL and return Clash-compatible format"""
@@ -46,7 +54,11 @@ def decode_vless_link(vless_link):
                     'skip-cert-verify': node_yaml.get('skip-cert-verify', True),
                 }
                 if 'flow' in node_yaml:
-                    node['flow'] = node_yaml['flow']
+                    flow = node_yaml['flow']
+                    if flow in supported_xtls_flows:
+                        node['flow'] = supported_xtls_flows[flow]
+                    else:
+                        logging.warning(f"不支持的 XTLS flow 类型 {flow}，已移除")
                 if 'servername' in node_yaml:
                     node['sni'] = node_yaml['servername']
                 
@@ -107,7 +119,10 @@ def decode_vless_link(vless_link):
             'alpn': ['h2', 'http/1.1'],  # 添加 ALPN 支持
         }
         if flow:
-            node['flow'] = flow
+            if flow in supported_xtls_flows:
+                node['flow'] = supported_xtls_flows[flow]
+            else:
+                logging.warning(f"不支持的 XTLS flow 类型 {flow}，已移除")
 
         sni = params.get('sni', [''])[0] or parsed_url.hostname
         if sni:
