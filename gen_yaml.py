@@ -287,7 +287,7 @@ if __name__ == '__main__':
         p.start()
     logging.info("多进程已启动")
 
-    threshold = 50000  # 节点阈值，达到则停止所有子进程
+    threshold = 20000  # 节点阈值，达到则停止所有子进程
     try:
         # 监控子进程与 shared_list 长度
         while any(p.is_alive() for p in processes):
