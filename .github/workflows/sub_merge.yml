@@ -66,11 +66,18 @@ jobs:
       - name: Run clash-speedtest in parallel
         run: |
           counter=0
+          max_jobs=5
+          job_count=0
           for file in ${{ env.CURRENT_DIR }}/sub/*.yaml; do
           (
             ~/go/bin/clash-speedtest -fast -c "$file" -output "${{ env.CURRENT_DIR }}/sub/${counter}.yaml" -max-latency 800ms -rename
           ) &
           counter=$((counter + 1))
+          job_count=$((job_count + 1))
+          if [ $job_count -ge $max_jobs ]; then
+            wait
+            job_count=0
+          fi
           done
           wait
       

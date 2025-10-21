@@ -77,6 +77,19 @@ def decode_vless_link(vless_link):
                 # 支持 reality
                 if 'reality-opts' in node_yaml:
                     node['reality-opts'] = node_yaml['reality-opts']
+                if 'reality-opts' in node:
+                    pbk = node['reality-opts'].get('public-key', '')
+                    sid = node['reality-opts'].get('short-id', '')
+                    try:
+                        if pbk:
+                            base64.b64decode(pbk)
+                        if sid:
+                            sid_bytes = bytes.fromhex(sid)
+                            if len(sid_bytes) > 8:
+                                raise ValueError("short-id too long")
+                    except Exception as e:
+                        logging.warning(f"Invalid REALITY params in VLESS YAML: {e}")
+                        del node['reality-opts']
                 if 'client-fingerprint' in node_yaml:
                     node['client-fingerprint'] = node_yaml['client-fingerprint']
                 
@@ -177,21 +190,32 @@ def decode_vless_link(vless_link):
 
         # 支持 reality
         if security == 'reality':
-            node['reality-opts'] = {
-                'public-key': params.get('pbk', [''])[0],
-                'short-id': params.get('sid', [''])[0]
-            }
-            if 'fp' in params:
-                node['utls'] = {
-                    'enabled': True,
-                    'fingerprint': params['fp'][0]
-                }
-            else:
-                # 默认使用chrome指纹以提高兼容性
-                node['utls'] = {
-                    'enabled': True,
-                    'fingerprint': 'chrome'
-                }
+            pbk = params.get('pbk', [''])[0]
+            sid = params.get('sid', [''])[0]
+            reality_opts = {'public-key': pbk, 'short-id': sid}
+            try:
+                if pbk:
+                    base64.b64decode(pbk)
+                if sid:
+                    sid_bytes = bytes.fromhex(sid)
+                    if len(sid_bytes) > 8:
+                        raise ValueError("short-id too long")
+                if pbk or sid:
+                    node['reality-opts'] = reality_opts
+            except Exception as e:
+                logging.warning(f"Invalid REALITY params in VLESS URL: {e}")
+            if node.get('reality-opts'):  # Only add utls if reality-opts is set
+                if 'fp' in params:
+                    node['utls'] = {
+                        'enabled': True,
+                        'fingerprint': params['fp'][0]
+                    }
+                else:
+                    # 默认使用chrome指纹以提高兼容性
+                    node['utls'] = {
+                        'enabled': True,
+                        'fingerprint': 'chrome'
+                    }
 
         return node
     except Exception as e:
@@ -203,14 +227,14 @@ def decode_ss_link(ss_link):
     try:
         if ss_link.startswith('ss://'):
             ss_link = ss_link[5:]
-        
+
         # 移除名称部分，我们将使用随机名称
         if '#' in ss_link:
             ss_link = ss_link.split('#', 1)[0]
-        
+
         # 生成基础名称
         base_name = f"Node-{str(uuid.uuid4())[:8]}"
-        
+
         # Try to decode the main part
         try:
             decoded = base64.b64decode(ss_link).decode('utf-8')
@@ -234,20 +258,28 @@ def decode_ss_link(ss_link):
                 server, port = server_port.split(':', 1)
             else:
                 raise ValueError("Invalid SS link format")
-        
+
         # 修正 cipher 字段，去除可能的 'ss' 前缀
         cipher = method.lower()
         if cipher.startswith('ss') and cipher != 'ssr':
             cipher = cipher.replace('ss', '', 1)
             cipher = cipher.strip('-')
 
-        # 对于2022协议，需要将password从base64解码并转换为hex格式
+        # 对于2022协议，需要处理密码
         if cipher.startswith('2022'):
-            decoded_key = base64.b64decode(password)
-            if len(decoded_key) != 32:
-                logging.warning(f"Invalid key length {len(decoded_key)} for {cipher}, expected 32 bytes. Skipping node.")
+            try:
+                decoded_key = base64.b64decode(password)
+            except:
+                try:
+                    decoded_key = bytes.fromhex(password)
+                except:
+                    raise ValueError("Invalid password format for 2022 cipher")
+            expected_len = 32 if 'aes-256' in cipher else 16
+            if len(decoded_key) != expected_len:
+                logging.warning(f"Invalid key length {len(decoded_key)} for {cipher}, expected {expected_len} bytes. Skipping node.")
                 return None
-            password = decoded_key.hex()
+            # 重新编码为base64以保持一致性
+            password = base64.b64encode(decoded_key).decode()
 
         if cipher not in supported_ciphers:
             logging.warning(f"SS节点加密方式 {cipher} 不被Clash和sing-box同时支持，已丢弃")
@@ -580,21 +612,32 @@ def decode_url_to_nodes(url):
                         
                         # 支持 reality
                         if node_data.get('security') == 'reality':
-                            node['reality-opts'] = {
-                                'public-key': node_data.get('pbk', ''),
-                                'short-id': node_data.get('sid', '')
-                            }
-                            if 'fp' in node_data:
-                                node['utls'] = {
-                                    'enabled': True,
-                                    'fingerprint': node_data['fp']
-                                }
-                            else:
-                                # 默认使用chrome指纹以提高兼容性
-                                node['utls'] = {
-                                    'enabled': True,
-                                    'fingerprint': 'chrome'
-                                }
+                            pbk = node_data.get('pbk', '')
+                            sid = node_data.get('sid', '')
+                            reality_opts = {'public-key': pbk, 'short-id': sid}
+                            try:
+                                if pbk:
+                                    base64.b64decode(pbk)
+                                if sid:
+                                    sid_bytes = bytes.fromhex(sid)
+                                    if len(sid_bytes) > 8:
+                                        raise ValueError("short-id too long")
+                                if pbk or sid:
+                                    node['reality-opts'] = reality_opts
+                            except Exception as e:
+                                logging.warning(f"Invalid REALITY params in VMESS: {e}")
+                            if node.get('reality-opts'):  # Only add utls if reality-opts is set
+                                if 'fp' in node_data:
+                                    node['utls'] = {
+                                        'enabled': True,
+                                        'fingerprint': node_data['fp']
+                                    }
+                                else:
+                                    # 默认使用chrome指纹以提高兼容性
+                                    node['utls'] = {
+                                        'enabled': True,
+                                        'fingerprint': 'chrome'
+                                    }
                         nodes.append(node)
                     elif line.startswith('vless://'):
                         node = decode_vless_link(line)
