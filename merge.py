@@ -26,6 +26,7 @@ def merge_proxies(directory, output_file):
                             seen_servers.add(proxy['server'])
             os.remove(filepath)
 
+    logging.info(f"Total proxies: {len(all_proxies)}")
     nodes_nums = 300;
     # 每1000条生成一个yaml文件
     for i in range(0, len(all_proxies), nodes_nums):
@@ -35,6 +36,7 @@ def merge_proxies(directory, output_file):
             chunk = all_proxies[i:i+nodes_nums]
         with open(f'sub/merged_proxies_{i//nodes_nums+1}.yaml', 'w', encoding='utf-8') as file:
             yaml.safe_dump({'proxies': chunk}, file, allow_unicode=True)
+            logging.info(f"Writing to {file.name}")
 
 # 使用示例
 merge_proxies('sub', 'sub/merged_proxies.yaml')

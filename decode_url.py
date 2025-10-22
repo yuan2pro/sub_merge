@@ -82,14 +82,17 @@ def decode_vless_link(vless_link):
                     sid = node['reality-opts'].get('short-id', '')
                     try:
                         if pbk:
-                            base64.b64decode(pbk)
+                            # Add padding to base64 string if missing
+                            padded_pbk = pbk + '=' * (-len(pbk) % 4)
+                            base64.b64decode(padded_pbk)
                         if sid:
                             sid_bytes = bytes.fromhex(sid)
                             if len(sid_bytes) > 8:
                                 raise ValueError("short-id too long")
                     except Exception as e:
                         logging.warning(f"Invalid REALITY params in VLESS YAML: {e}")
-                        del node['reality-opts']
+                        if 'reality-opts' in node:
+                            del node['reality-opts']
                 if 'client-fingerprint' in node_yaml:
                     node['client-fingerprint'] = node_yaml['client-fingerprint']
                 
@@ -195,27 +198,22 @@ def decode_vless_link(vless_link):
             reality_opts = {'public-key': pbk, 'short-id': sid}
             try:
                 if pbk:
-                    base64.b64decode(pbk)
+                    # Add padding to base64 string if missing
+                    padded_pbk = pbk + '=' * (-len(pbk) % 4)
+                    base64.b64decode(padded_pbk)
                 if sid:
                     sid_bytes = bytes.fromhex(sid)
                     if len(sid_bytes) > 8:
                         raise ValueError("short-id too long")
                 if pbk or sid:
                     node['reality-opts'] = reality_opts
+                    # 处理 fingerprint
+                    if 'fp' in params:
+                        node['client-fingerprint'] = params['fp'][0]
             except Exception as e:
                 logging.warning(f"Invalid REALITY params in VLESS URL: {e}")
-            if node.get('reality-opts'):  # Only add utls if reality-opts is set
-                if 'fp' in params:
-                    node['utls'] = {
-                        'enabled': True,
-                        'fingerprint': params['fp'][0]
-                    }
-                else:
-                    # 默认使用chrome指纹以提高兼容性
-                    node['utls'] = {
-                        'enabled': True,
-                        'fingerprint': 'chrome'
-                    }
+                if 'reality-opts' in node:
+                    del node['reality-opts']
 
         return node
     except Exception as e:
@@ -610,34 +608,6 @@ def decode_url_to_nodes(url):
                         if 'sni' in node_data:
                             node['sni'] = node_data['sni']
                         
-                        # 支持 reality
-                        if node_data.get('security') == 'reality':
-                            pbk = node_data.get('pbk', '')
-                            sid = node_data.get('sid', '')
-                            reality_opts = {'public-key': pbk, 'short-id': sid}
-                            try:
-                                if pbk:
-                                    base64.b64decode(pbk)
-                                if sid:
-                                    sid_bytes = bytes.fromhex(sid)
-                                    if len(sid_bytes) > 8:
-                                        raise ValueError("short-id too long")
-                                if pbk or sid:
-                                    node['reality-opts'] = reality_opts
-                            except Exception as e:
-                                logging.warning(f"Invalid REALITY params in VMESS: {e}")
-                            if node.get('reality-opts'):  # Only add utls if reality-opts is set
-                                if 'fp' in node_data:
-                                    node['utls'] = {
-                                        'enabled': True,
-                                        'fingerprint': node_data['fp']
-                                    }
-                                else:
-                                    # 默认使用chrome指纹以提高兼容性
-                                    node['utls'] = {
-                                        'enabled': True,
-                                        'fingerprint': 'chrome'
-                                    }
                         nodes.append(node)
                     elif line.startswith('vless://'):
                         node = decode_vless_link(line)
@@ -672,9 +642,9 @@ def decode_url_to_nodes(url):
 
 if __name__ == "__main__":
     try:
-        nodes = decode_url_to_nodes(url = "https://raw.githubusercontent.com/ripaojiedian/freenode/main/sub")
+        nodes = decode_url_to_nodes(url = "https://raw.githubusercontent.com/mheidari98/.proxy/refs/heads/main/all")
         yaml_output = yaml.dump({'proxies': nodes}, allow_unicode=True)
-        print(yaml_output)  # 保留这一个print用于输出YAML内容
+        # print(yaml_output)  # 保留这一个print用于输出YAML内容
     except ImportError as e:
         logging.error(f"缺少必要的依赖库: {e}")
         logging.error("请运行以下命令安装所需依赖:")
