@@ -309,7 +309,7 @@ if __name__ == '__main__':
 
     logging.info("多进程已结束，当前节点数：%d", len(shared_list))
     random.shuffle(shared_list)
-    each_num = 1000
+    each_num = 100
     thread_list = []
     t_num = len(shared_list) // each_num + 1
     for i in range(t_num):

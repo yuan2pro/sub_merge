@@ -1,7 +1,10 @@
+import logging
 import os
 
 import yaml
 
+# 日志输出
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(lineno)d - %(message)s')
 
 def merge_proxies(directory, output_file):
     all_proxies = []
@@ -13,6 +16,7 @@ def merge_proxies(directory, output_file):
         if filename.endswith('.yaml'):
             filepath = os.path.join(directory, filename)
             with open(filepath, 'r', encoding='utf-8') as file:
+                logging.info(f"Processing {filepath}")
                 data = yaml.safe_load(file)
                 if 'proxies' in data:
                     for proxy in data['proxies']:
@@ -22,13 +26,14 @@ def merge_proxies(directory, output_file):
                             seen_servers.add(proxy['server'])
             os.remove(filepath)
 
+    nodes_nums = 300;
     # 每1000条生成一个yaml文件
-    for i in range(0, len(all_proxies), 100):
-        if len(all_proxies[i:]) - 100 < 0:
+    for i in range(0, len(all_proxies), nodes_nums):
+        if len(all_proxies[i:]) - nodes_nums < 0:
             chunk = all_proxies[i:]
         else:
-            chunk = all_proxies[i:i+100]
-        with open(f'sub/merged_proxies_{i//100+1}.yaml', 'w', encoding='utf-8') as file:
+            chunk = all_proxies[i:i+nodes_nums]
+        with open(f'sub/merged_proxies_{i//nodes_nums+1}.yaml', 'w', encoding='utf-8') as file:
             yaml.safe_dump({'proxies': chunk}, file, allow_unicode=True)
 
 # 使用示例
