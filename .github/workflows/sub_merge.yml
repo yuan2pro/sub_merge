@@ -82,14 +82,14 @@ jobs:
           sudo cp mihomo /usr/local/bin/
       
       # mihomo-speedtest-rs筛选节点
-      - name: mihomo-speedtest-rs
+      - name: mihomo-speedtest
         run: |
           cd ${{ env.CURRENT_DIR }}
           # 循环遍历sub目录下的所有yaml文件
           for file in ${{ env.CURRENT_DIR }}/sub/*.yaml; do
             filename=$(basename "$file")
             echo "Processing $filename..."
-            mihomo-speedtest-rs -c "$file" --output "${{ env.CURRENT_DIR }}/sub/${filename%.yaml}-new.yaml" --mihomo-config-dir ./mihomo/temp --rename --use-mihomo
+            mihomo-speedtest -c "$file" --output "${{ env.CURRENT_DIR }}/sub/${filename%.yaml}-new.yaml" --mihomo-config-dir ./mihomo/temp --rename --use-mihomo
             rm -rf "$file"
           done
           rm -rf ${{ env.CURRENT_DIR }}/mihomo
