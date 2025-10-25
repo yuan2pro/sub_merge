@@ -78,6 +78,7 @@ jobs:
         run: |
           git clone https://github.com/MetaCubeX/mihomo.git -b Alpha
           cd mihomo && go build
+          chmod +x mihomo
           # 将构建的mihomo二进制文件复制到系统PATH中
           sudo cp mihomo /usr/local/bin/
       
@@ -89,7 +90,7 @@ jobs:
           for file in ${{ env.CURRENT_DIR }}/sub/*.yaml; do
             filename=$(basename "$file")
             echo "Processing $filename..."
-            mihomo-speedtest -c "$file" --output "${{ env.CURRENT_DIR }}/sub/${filename%.yaml}-new.yaml" --mihomo-config-dir ./mihomo/temp --rename --use-mihomo
+            mihomo-speedtest -c "$file" --output "${{ env.CURRENT_DIR }}/sub/${filename%.yaml}-new.yaml" --mihomo-config-dir ./mihomo/temp --rename --use-mihomo --timeout 10 
             rm -rf "$file"
           done
           rm -rf ${{ env.CURRENT_DIR }}/mihomo
