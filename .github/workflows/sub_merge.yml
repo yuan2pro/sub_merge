@@ -67,6 +67,33 @@ jobs:
           toolchain: stable
           override: true
 
+      # 安装https://github.com/yuan2pro/mihomo-speedtest-rs
+      - name: Install mihomo-speedtest-rs
+        run: |
+          cd ${{ env.CURRENT_DIR }}
+          cargo install --git https://github.com/yuan2pro/mihomo-speedtest-rs.git --locked    
+        
+      # 安装mihomo的Alpha分支
+      - name: Install mihomo
+        run: |
+          git clone https://github.com/MetaCubeX/mihomo.git -b Alpha
+          cd mihomo && go build
+          # 将构建的mihomo二进制文件复制到系统PATH中
+          sudo cp mihomo /usr/local/bin/
+      
+      # mihomo-speedtest-rs筛选节点
+      - name: mihomo-speedtest-rs
+        run: |
+          cd ${{ env.CURRENT_DIR }}
+          # 循环遍历sub目录下的所有yaml文件
+          for file in ${{ env.CURRENT_DIR }}/sub/*.yaml; do
+            filename=$(basename "$file")
+            echo "Processing $filename..."
+            mihomo-speedtest-rs -c "$file" --output "${{ env.CURRENT_DIR }}/sub/${filename%.yaml}-new.yaml" --mihomo-config-dir ./mihomo/temp --rename --use-mihomo
+            rm -rf "$file"
+          done
+          rm -rf ${{ env.CURRENT_DIR }}/mihomo
+
       - name: merge nodes
         run: |
           python ./merge.py
