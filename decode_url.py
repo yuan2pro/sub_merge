@@ -528,7 +528,7 @@ def decode_url_to_nodes(url):
         nodes = []
         for line in decoded_content.splitlines():
             line = line.strip()
-            if line.startswith(('vmess://', 'vless://', 'hysteria2://', 'ss://', 'ssr://', 'trojan://')):
+            if line.startswith(('vmess://', 'vless://', 'hysteria2://', 'ss://', 'trojan://')):
                 # Convert the node to Clash format
                 try:
                     if line.startswith('vmess://'):
@@ -625,10 +625,10 @@ def decode_url_to_nodes(url):
                         node = decode_trojan_link(line)
                         if node:
                             nodes.append(node)
-                    elif line.startswith('ssr://'):
-                        node = decode_ssr_link(line)
-                        if node:
-                            nodes.append(node)
+                    # elif line.startswith('ssr://'):
+                    #     node = decode_ssr_link(line)
+                    #     if node:
+                    #         nodes.append(node)
                 except Exception as e:
                     logging.error(f"Error parsing line '{line[:50]}...': {e}")
                     continue
