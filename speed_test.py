@@ -553,7 +553,7 @@ def main():
     if error_count > 0:
         print("\n失败的文件:")
         for result in processed_results:
-            if not result.success:
+            if not result['success']:
                 print(f"  - {result['filename']}: {result.get('error', '未知错误')}")
 
 if __name__ == '__main__':
