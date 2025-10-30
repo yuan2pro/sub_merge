@@ -555,6 +555,9 @@ def main():
         for result in processed_results:
             if not result['success']:
                 print(f"  - {result['filename']}: {result.get('error', '未知错误')}")
-
+    for file_info in file_list:
+        if os.path.exists(file_info['input_path']):
+            os.remove(file_info['input_path'])
+            print(f"已删除: {file_info['input_path']}")
 if __name__ == '__main__':
     main()
