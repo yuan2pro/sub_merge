@@ -70,15 +70,14 @@ def get_country_emoji(ip_address):
         # 将国家代码转换为 emoji
         if country_code:
             # 国家代码转换为 emoji
-            emoji_char = chr(ord(country_code[0]) + 127397) + chr(ord(country_code[1]) + 127397)
-            logging.debug(f"{ip_address} emoji is {emoji_char}")
-            return emoji_char
+            emoji = chr(ord(country_code[0]) + 127397) + chr(ord(country_code[1]) + 127397)
+            logging.debug(f"{ip_address} emoji is {emoji}")
+            return emoji
         else:
             logging.debug(f"{ip_address} emoji is None")
             return "🌍"
     except Exception as e:
         logging.error(f"{e}")
-        return "🌍"
 
 
 def test_connection(ip, port):
@@ -218,13 +217,13 @@ def run(index, shared_list):
                                 continue
                         
                         # add name emoji
-                        if not has_emoji(name):
-                            c_emoji = get_country_emoji(server)
-                            if c_emoji is not None:
-                                proxie['name'] = f"{c_emoji} {name}"
-                            else:
-                                not_proxies.add(proxie['server'])
-                                continue
+                        # if not has_emoji(name):
+                        #     c_emoji = get_country_emoji(server)
+                        #     if c_emoji is not None:
+                        #         proxie['name'] = name + str(c_emoji)
+                        #     else:
+                        #         not_proxies.add(proxie['server'])
+                        #         continue
                         new_proxies.append(proxie)
                     except Exception as e:
                         not_proxies.add(proxie['server'])
@@ -288,7 +287,7 @@ if __name__ == '__main__':
         p.start()
     logging.info("多进程已启动")
 
-    threshold = 5000  # 节点阈值，达到则停止所有子进程
+    threshold = 2000  # 节点阈值，达到则停止所有子进程
     try:
         # 监控子进程与 shared_list 长度
         while any(p.is_alive() for p in processes):
@@ -310,7 +309,7 @@ if __name__ == '__main__':
 
     logging.info("多进程已结束，当前节点数：%d", len(shared_list))
     random.shuffle(shared_list)
-    each_num = 500
+    each_num = 100
     thread_list = []
     t_num = len(shared_list) // each_num + 1
     for i in range(t_num):

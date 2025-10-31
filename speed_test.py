@@ -426,15 +426,16 @@ def filter_and_save_proxies(input_yaml, output_yaml, min_speed_score=10, max_fai
     for result in test_results:
         if result['status'] == 'pass' and result['speed_score'] >= min_speed_score:
             # 找到原始代理配置
-            original_proxy = next(p for p in proxies if p['name'] == result['name'])
-            passed_proxies.append(original_proxy)
-            speed_stats.append({
-                'name': result['name'],
-                'download_mbps': result.get('download_mbps', 0),
-                'upload_mbps': result.get('upload_mbps', 0),
-                'speed_score': result['speed_score'],
-                'response_time': result['response_time']
-            })
+            original_proxy = next((p for p in proxies if p['name'] == result['name']), None)
+            if original_proxy:
+                passed_proxies.append(original_proxy)
+                speed_stats.append({
+                    'name': result['name'],
+                    'download_mbps': result.get('download_mbps', 0),
+                    'upload_mbps': result.get('upload_mbps', 0),
+                    'speed_score': result['speed_score'],
+                    'response_time': result['response_time']
+                })
 
     # 保存过滤后的代理
     os.makedirs(os.path.dirname(output_yaml), exist_ok=True)
@@ -561,3 +562,4 @@ def main():
             print(f"已删除: {file_info['input_path']}")
 if __name__ == '__main__':
     main()
+

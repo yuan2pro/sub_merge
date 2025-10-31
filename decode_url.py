@@ -75,7 +75,7 @@ def decode_vless_link(vless_link):
                 elif node['network'] == 'quic' and 'quic-opts' in node_yaml:
                     node['quic-opts'] = node_yaml['quic-opts']
                 
-                # 支持 reality
+                # 支持 reality (仅限 VLESS 和其他支持的协议)
                 if 'reality-opts' in node_yaml:
                     node['reality-opts'] = node_yaml['reality-opts']
                 if 'reality-opts' in node:
@@ -195,7 +195,7 @@ def decode_vless_link(vless_link):
             if quic_opts:
                 node['quic-opts'] = quic_opts
 
-        # 支持 reality
+        # 支持 reality (仅限 VLESS 和其他支持的协议)
         if security == 'reality':
             pbk = params.get('pbk', [''])[0]
             sid = params.get('sid', [''])[0]
@@ -222,6 +222,98 @@ def decode_vless_link(vless_link):
         return node
     except Exception as e:
         logging.error(f"Error parsing VLESS link: {e}")
+        return None
+
+def decode_vmess_link(vmess_link):
+    """Parse VMess protocol URL and return Clash-compatible format"""
+    try:
+        node_data = json.loads(base64.b64decode(vmess_link[8:]).decode())
+        # 生成基础名称
+        base_name = f"Node-{str(uuid.uuid4())[:8]}"
+        # 获取国旗 emoji
+        server = node_data.get('add', '').strip()
+        emoji = get_country_emoji(server)
+        # 组合名称和国旗
+        random_name = f"{emoji} {base_name}"
+        # 设置默认加密方式为 auto，确保与 Clash 兼容
+        cipher = node_data.get('security', 'auto')
+        # 如果加密方式为 none，改为 auto
+        if cipher == 'none':
+            cipher = 'auto'
+        # 检查必要字段
+        if not node_data.get('add') or not node_data.get('port') or not node_data.get('id'):
+            return None
+            
+        node = {
+            'type': 'vmess',
+            'name': random_name,
+            'server': node_data.get('add', '').strip(),
+            'port': int(node_data.get('port', 0)),
+            'uuid': node_data.get('id', ''),
+            'alterId': int(node_data.get('aid', 0)),
+            'cipher': cipher,
+            'tls': True if node_data.get('tls') == 'tls' else False,
+            'udp': True,
+            'skip-cert-verify': True,  # 默认跳过证书验证以提高连接成功率
+        }
+        # 支持 network 字段
+        if 'net' in node_data:
+            node['network'] = node_data['net']
+            
+        # 根据不同传输方式添加对应配置
+        if node.get('network') == 'ws':
+            ws_opts = {'path': node_data.get('path', '/')}
+            headers = {}
+            if 'host' in node_data:
+                headers['Host'] = node_data['host']
+            if headers:
+                ws_opts['headers'] = headers
+            node['ws-opts'] = ws_opts
+        elif node.get('network') == 'grpc':
+            grpc_opts = {}
+            if 'serviceName' in node_data:
+                grpc_opts['grpc-service-name'] = node_data['serviceName']
+            node['grpc-opts'] = grpc_opts
+        elif node.get('network') == 'http':
+            http_opts = {}
+            # 只在参数非空时才添加到数组
+            if 'path' in node_data and node_data['path'].strip():
+                http_opts['path'] = [node_data['path'].strip()]
+            if 'host' in node_data and node_data['host'].strip():
+                http_opts['headers'] = {'Host': [node_data['host'].strip()]}  # Host 需要是一个数组
+            # 只有当http_opts有内容时才添加
+            if http_opts:
+                node['http-opts'] = http_opts
+        elif node.get('network') == 'h2':
+            h2_opts = {}
+            # 确保path和host参数非空
+            if 'path' in node_data and node_data['path'].strip():
+                h2_opts['path'] = node_data['path'].strip()
+            if 'host' in node_data and node_data['host'].strip():
+                h2_opts['host'] = [node_data['host'].strip()]
+            if h2_opts:
+                node['h2-opts'] = h2_opts
+                node['tls'] = True
+        elif node.get('network') == 'quic':
+            quic_opts = {}
+            if 'quicSecurity' in node_data:
+                quic_opts['security'] = node_data['quicSecurity']
+            if 'key' in node_data:
+                quic_opts['key'] = node_data['key']
+            if 'type' in node_data:
+                quic_opts['type'] = node_data['type']
+            node['quic-opts'] = quic_opts
+        
+        # 支持 sni 字段
+        if 'sni' in node_data:
+            node['sni'] = node_data['sni']
+        
+        # VMess 不支持 REALITY，如果存在相关参数应当忽略
+        # 如果有 reality-opts 或 client-fingerprint 字段，应该移除它们以避免混淆
+        
+        return node
+    except Exception as e:
+        logging.error(f"Error parsing VMess link: {e}")
         return None
 
 def decode_ss_link(ss_link):
@@ -552,88 +644,9 @@ def decode_url_to_nodes(url):
                 # Convert the node to Clash format
                 try:
                     if line.startswith('vmess://'):
-                        node_data = json.loads(base64.b64decode(line[8:]).decode())
-                        # 生成基础名称
-                        base_name = f"Node-{str(uuid.uuid4())[:8]}"
-                        # 获取国旗 emoji
-                        server = node_data.get('add', '').strip()
-                        emoji = get_country_emoji(server)
-                        # 组合名称和国旗
-                        random_name = f"{emoji} {base_name}"
-                        # 设置默认加密方式为 auto，确保与 Clash 兼容
-                        cipher = node_data.get('security', 'auto')
-                        # 如果加密方式为 none，改为 auto
-                        if cipher == 'none':
-                            cipher = 'auto'
-                        # 检查必要字段
-                        if not node_data.get('add') or not node_data.get('port') or not node_data.get('id'):
-                            continue
-                            
-                        node = {
-                            'type': 'vmess',
-                            'name': random_name,
-                            'server': node_data.get('add', '').strip(),
-                            'port': int(node_data.get('port', 0)),
-                            'uuid': node_data.get('id', ''),
-                            'alterId': int(node_data.get('aid', 0)),
-                            'cipher': cipher,
-                            'tls': True if node_data.get('tls') == 'tls' else False,
-                            'udp': True,
-                            'skip-cert-verify': True,  # 默认跳过证书验证以提高连接成功率
-                        }
-                        # 支持 network 字段
-                        if 'net' in node_data:
-                            node['network'] = node_data['net']
-                            
-                        # 根据不同传输方式添加对应配置
-                        if node.get('network') == 'ws':
-                            ws_opts = {'path': node_data.get('path', '/')}
-                            headers = {}
-                            if 'host' in node_data:
-                                headers['Host'] = node_data['host']
-                            if headers:
-                                ws_opts['headers'] = headers
-                            node['ws-opts'] = ws_opts
-                        elif node.get('network') == 'grpc':
-                            grpc_opts = {}
-                            if 'serviceName' in node_data:
-                                grpc_opts['grpc-service-name'] = node_data['serviceName']
-                            node['grpc-opts'] = grpc_opts
-                        elif node.get('network') == 'http':
-                            http_opts = {}
-                            # 只在参数非空时才添加到数组
-                            if 'path' in node_data and node_data['path'].strip():
-                                http_opts['path'] = [node_data['path'].strip()]
-                            if 'host' in node_data and node_data['host'].strip():
-                                http_opts['headers'] = {'Host': [node_data['host'].strip()]}  # Host 需要是一个数组
-                            # 只有当http_opts有内容时才添加
-                            if http_opts:
-                                node['http-opts'] = http_opts
-                        elif node.get('network') == 'h2':
-                            h2_opts = {}
-                            # 确保path和host参数非空
-                            if 'path' in node_data and node_data['path'].strip():
-                                h2_opts['path'] = node_data['path'].strip()
-                            if 'host' in node_data and node_data['host'].strip():
-                                h2_opts['host'] = [node_data['host'].strip()]
-                            if h2_opts:
-                                node['h2-opts'] = h2_opts
-                                node['tls'] = True
-                        elif node.get('network') == 'quic':
-                            quic_opts = {}
-                            if 'quicSecurity' in node_data:
-                                quic_opts['security'] = node_data['quicSecurity']
-                            if 'key' in node_data:
-                                quic_opts['key'] = node_data['key']
-                            if 'type' in node_data:
-                                quic_opts['type'] = node_data['type']
-                            node['quic-opts'] = quic_opts
-                        
-                        # 支持 sni 字段
-                        if 'sni' in node_data:
-                            node['sni'] = node_data['sni']
-                        
-                        nodes.append(node)
+                        node = decode_vmess_link(line)
+                        if node:
+                            nodes.append(node)
                     elif line.startswith('vless://'):
                         node = decode_vless_link(line)
                         if node:
