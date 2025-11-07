@@ -83,15 +83,25 @@ def decode_vless_link(vless_link):
                     sid = node['reality-opts'].get('short-id', '')
                     try:
                         if pbk:
-                            # Add padding to base64 string if missing
-                            padded_pbk = pbk + '=' * (-len(pbk) % 4)
-                            base64.b64decode(padded_pbk)
+                            # Try to decode base64, add padding if needed
+                            try:
+                                base64.b64decode(pbk)
+                                node['reality-opts']['public-key'] = pbk
+                            except:
+                                # Try with padding
+                                missing_padding = len(pbk) % 4
+                                if missing_padding:
+                                    padded_pbk = pbk + '=' * (4 - missing_padding)
+                                    base64.b64decode(padded_pbk)
+                                    node['reality-opts']['public-key'] = padded_pbk
+                                else:
+                                    raise ValueError("Invalid base64 format")
                         if sid:
                             sid_bytes = bytes.fromhex(sid)
                             if len(sid_bytes) > 8:
                                 raise ValueError("short-id too long")
                     except Exception as e:
-                        logging.warning(f"Invalid REALITY params in VLESS YAML: {e}")
+                        logging.debug(f"Invalid REALITY params in VLESS YAML: {e}")
                         if 'reality-opts' in node:
                             del node['reality-opts']
                 if 'client-fingerprint' in node_yaml:
@@ -112,12 +122,6 @@ def decode_vless_link(vless_link):
         emoji = get_country_emoji(server)
         # 组合名称和国旗
         random_name = f"{emoji} {base_name}"
-        # 设置加密方式，VLESS 默认使用 none
-        encryption = params.get('encryption', ['none'])[0]
-        security = params.get('security', ['tls'])[0]  # 默认使用 tls
-        # 支持 flow 参数（例如 xtls-rprx-vision）
-        flow = params.get('flow', [''])[0]
-
         # 检查必要字段
         if not parsed_url.hostname or not parsed_url.port or not parsed_url.username:
             return None
@@ -128,12 +132,18 @@ def decode_vless_link(vless_link):
             'server': parsed_url.hostname.strip(),
             'port': int(parsed_url.port),
             'uuid': parsed_url.username,
-            'tls': True if security == 'tls' else False,
-            'network': params.get('type', ['tcp'])[0],
-            'udp': True,
-            'skip-cert-verify': True,  # 默认跳过证书验证以提高连接成功率
-            'alpn': ['h2', 'http/1.1'],  # 添加 ALPN 支持
         }
+        
+        # 只有在原始链接中明确提供时才添加这些参数
+        if 'security' in params:
+            node['tls'] = True if params['security'][0] == 'tls' else False
+        if 'type' in params:
+            node['network'] = params['type'][0]
+        if 'skip-cert-verify' in params:
+            node['skip-cert-verify'] = params['skip-cert-verify'][0].lower() == 'true'
+            
+        # 支持 flow 参数（例如 xtls-rprx-vision）
+        flow = params.get('flow', [''])[0]
         if flow:
             if flow in supported_xtls_flows:
                 node['flow'] = supported_xtls_flows[flow]
@@ -196,29 +206,37 @@ def decode_vless_link(vless_link):
                 node['quic-opts'] = quic_opts
 
         # 支持 reality (仅限 VLESS 和其他支持的协议)
+        security = params.get('security', [''])[0]
         if security == 'reality':
             pbk = params.get('pbk', [''])[0]
             sid = params.get('sid', [''])[0]
             reality_opts = {'public-key': pbk, 'short-id': sid}
             try:
                 if pbk:
-                    # Add padding to base64 string if missing
-                    padded_pbk = pbk + '=' * (-len(pbk) % 4)
+                    # Fix base64 padding
+                    missing_padding = len(pbk) % 4
+                    if missing_padding:
+                        padded_pbk = pbk + '=' * (4 - missing_padding)
+                    else:
+                        padded_pbk = pbk
+                    # Verify the padded string is valid base64
                     base64.b64decode(padded_pbk)
+                    # Use the padded version
+                    reality_opts['public-key'] = padded_pbk
                 if sid:
                     sid_bytes = bytes.fromhex(sid)
                     if len(sid_bytes) > 8:
                         raise ValueError("short-id too long")
-                if pbk or sid:
+                # Only add reality-opts if both pbk and sid are valid or if at least one is valid
+                if (pbk and 'public-key' in reality_opts) or sid:
                     node['reality-opts'] = reality_opts
                     # 处理 fingerprint
                     if 'fp' in params:
                         node['client-fingerprint'] = params['fp'][0]
             except Exception as e:
-                logging.warning(f"Invalid REALITY params in VLESS URL: {e}")
+                logging.debug(f"Invalid REALITY params in VLESS URL: {e}")
                 if 'reality-opts' in node:
                     del node['reality-opts']
-
         return node
     except Exception as e:
         logging.error(f"Error parsing VLESS link: {e}")
@@ -252,10 +270,15 @@ def decode_vmess_link(vmess_link):
             'uuid': node_data.get('id', ''),
             'alterId': int(node_data.get('aid', 0)),
             'cipher': cipher,
-            'tls': True if node_data.get('tls') == 'tls' else False,
-            'udp': True,
-            'skip-cert-verify': True,  # 默认跳过证书验证以提高连接成功率
         }
+        
+        # 只有在原始配置中明确提供时才添加这些参数
+        if 'tls' in node_data:
+            node['tls'] = True if node_data.get('tls') == 'tls' else False
+        if 'udp' in node_data:
+            node['udp'] = node_data['udp']
+        if 'skip-cert-verify' in node_data:
+            node['skip-cert-verify'] = node_data['skip-cert-verify']
         # 支持 network 字段
         if 'net' in node_data:
             node['network'] = node_data['net']
@@ -329,35 +352,91 @@ def decode_ss_link(ss_link):
         # 生成基础名称
         base_name = f"Node-{str(uuid.uuid4())[:8]}"
 
-        # Try to decode the main part
+        method = None
+        password = None
+        server = None
+        port = None
+
+        # Try standard SS format first: base64(method:password)@server:port
         try:
-            decoded = base64.b64decode(ss_link).decode('utf-8')
+            # Validate base64 format - must be multiple of 4 or valid with padding
+            link_len = len(ss_link)
+            if link_len % 4 == 1:
+                # Invalid base64 - cannot be 1 mod 4
+                raise ValueError("Invalid base64 length")
+
+            # Add padding to base64 if needed
+            missing_padding = link_len % 4
+            if missing_padding:
+                padded_link = ss_link + '=' * (4 - missing_padding)
+            else:
+                padded_link = ss_link
+
+            decoded_bytes = base64.b64decode(padded_link)
+            try:
+                decoded = decoded_bytes.decode('utf-8')
+            except UnicodeDecodeError:
+                # If UTF-8 decoding fails, the base64 might contain binary data
+                # This is an invalid SS link format
+                raise ValueError("Base64 content is not valid UTF-8 text")
+
             if '@' in decoded:
                 method_pass, server_port = decoded.split('@', 1)
-                method, password = method_pass.split(':', 1)
-                server, port = server_port.split(':', 1)
-            else:
-                raise ValueError("Invalid SS link format")
-        except:
-            # If the first decode fails, try parsing the traditional format
-            if '@' in ss_link:
-                first_part, server_port = ss_link.split('@', 1)
-                try:
-                    method_pass = base64.b64decode(first_part).decode('utf-8')
+                if ':' in method_pass:
                     method, password = method_pass.split(':', 1)
-                except:
-                    method, password = first_part.split(':', 1)
-                if '#' in server_port:
-                    server_port, name = server_port.split('#', 1)
-                server, port = server_port.split(':', 1)
+                else:
+                    raise ValueError("Invalid method:password format")
+
+                # 安全地分割服务器和端口
+                if ':' in server_port:
+                    server, port = server_port.rsplit(':', 1)
+                else:
+                    raise ValueError("Invalid server:port format")
             else:
-                raise ValueError("Invalid SS link format")
+                raise ValueError("Invalid SS link format - missing '@'")
+        except Exception as e:
+            # If standard format fails, try alternative parsing
+            logging.debug(f"Standard SS parsing failed, trying alternative: {e}")
+
+            # Check if it's already in decoded format: method:password@server:port
+            if '@' in ss_link and ':' in ss_link:
+                try:
+                    parts = ss_link.split('@', 1)
+                    if len(parts) == 2:
+                        method_pass, server_port = parts
+                        if ':' in method_pass:
+                            method, password = method_pass.split(':', 1)
+                        else:
+                            raise ValueError("Invalid method:password format")
+
+                        if ':' in server_port:
+                            server, port = server_port.rsplit(':', 1)
+                        else:
+                            raise ValueError("Invalid server:port format")
+                    else:
+                        raise ValueError("Invalid SS link format")
+                except Exception as alt_e:
+                    logging.debug(f"Skipping SS link due to parsing failure: {ss_link[:50]}... (standard: {e}, alternative: {alt_e})")
+                    return None
+            else:
+                logging.debug(f"Skipping SS link due to invalid format: {ss_link[:50]}...")
+                return None
+
+        # Validate required fields
+        if not all([method, password, server, port]):
+            logging.warning(f"Skipping SS link due to missing required fields: method={method}, password={password}, server={server}, port={port}")
+            return None
 
         # 修正 cipher 字段，去除可能的 'ss' 前缀
         cipher = method.lower()
         if cipher.startswith('ss') and cipher != 'ssr':
             cipher = cipher.replace('ss', '', 1)
             cipher = cipher.strip('-')
+
+        # 检查 cipher 是否为空
+        if not cipher or cipher == '':
+            logging.warning(f"SS节点加密方式为空，已丢弃")
+            return None
 
         # 对于2022协议，需要处理密码
         if cipher.startswith('2022'):
@@ -399,7 +478,7 @@ def decode_trojan_link(trojan_link):
         parsed_url = urlparse(trojan_link)
         params = parse_qs(parsed_url.query)
 
-        # 生成基础名称
+        # 生成基础名称 
         base_name = f"Node-{str(uuid.uuid4())[:8]}"
         # 获取国旗 emoji
         emoji = get_country_emoji(parsed_url.hostname)
@@ -413,18 +492,25 @@ def decode_trojan_link(trojan_link):
             'server': parsed_url.hostname.strip(),
             'port': int(parsed_url.port),
             'password': parsed_url.username,
-            'sni': params.get('sni', [''])[0] or parsed_url.hostname,
-            'skip-cert-verify': True,  # 默认跳过证书验证以提高连接成功率
-            'udp': True,
-            'network': params.get('type', ['tcp'])[0],
-            'alpn': ['h2', 'http/1.1'],  # 添加 ALPN 支持
         }
+        
+        # 只有在原始链接中明确提供时才添加这些参数
+        if 'sni' in params:
+            node['sni'] = params['sni'][0] or parsed_url.hostname
+        if 'skip-cert-verify' in params:
+            node['skip-cert-verify'] = params['skip-cert-verify'][0].lower() == 'true'
+        if 'udp' in params:
+            node['udp'] = params['udp'][0].lower() == 'true'
+        if 'type' in params:
+            node['network'] = params['type'][0]
         if 'client-fingerprint' in params:
             node['client-fingerprint'] = params['client-fingerprint'][0]
             
         # 处理不同的传输协议
-        if node['network'] == 'ws':
-            ws_opts = {'path': params.get('path', ['/'])[0]}
+        if node.get('network') == 'ws':
+            ws_opts = {}
+            if 'path' in params:
+                ws_opts['path'] = params['path'][0]
             headers = {}
             if 'host' in params:
                 headers['Host'] = params['host'][0]
@@ -433,14 +519,15 @@ def decode_trojan_link(trojan_link):
                     headers[k[7:]] = v[0]
             if headers:
                 ws_opts['headers'] = headers
-            node['ws-opts'] = ws_opts
-        elif node['network'] == 'grpc':
+            if ws_opts:
+                node['ws-opts'] = ws_opts
+        elif node.get('network') == 'grpc':
             grpc_opts = {}
-            service_name = params.get('serviceName', [''])[0]
-            if service_name:
-                grpc_opts['grpc-service-name'] = service_name
-            node['grpc-opts'] = grpc_opts
-        elif node['network'] == 'http':
+            if 'serviceName' in params:
+                grpc_opts['grpc-service-name'] = params['serviceName'][0]
+            if grpc_opts:
+                node['grpc-opts'] = grpc_opts
+        elif node.get('network') == 'http':
             http_opts = {}
             # 只在参数非空时才添加到数组
             if 'path' in params and params['path'][0].strip():
@@ -450,7 +537,7 @@ def decode_trojan_link(trojan_link):
             # 只有当http_opts有内容时才添加
             if http_opts:
                 node['http-opts'] = http_opts
-        elif node['network'] == 'h2':
+        elif node.get('network') == 'h2':
             h2_opts = {}
             # 确保path和host参数非空
             if 'path' in params and params['path'][0].strip():
@@ -459,7 +546,7 @@ def decode_trojan_link(trojan_link):
                 h2_opts['host'] = [params['host'][0].strip()]
             if h2_opts:
                 node['h2-opts'] = h2_opts
-            node['tls'] = True
+                node['tls'] = True
         return node
     except Exception as e:
         logging.error(f"Error parsing Trojan link: {e}")
@@ -557,13 +644,17 @@ def decode_hysteria2_link(hy2_link):
             'server': parsed_url.hostname,
             'port': int(parsed_url.port),
             'password': parsed_url.username,
-            'sni': params.get('sni', [''])[0] or parsed_url.hostname,
-            'skip-cert-verify': params.get('insecure', ['0'])[0] == '1',
-            'tls': True,
-            'alpn': ['h3'],
-            'udp': True,
-            'hop-interval': int(params.get('hop', ['10'])[0]),
         }
+        
+        # 只有在原始链接中明确提供时才添加这些参数
+        if 'sni' in params:
+            node['sni'] = params['sni'][0] or parsed_url.hostname
+        if 'insecure' in params:
+            node['skip-cert-verify'] = params['insecure'][0] == '1'
+        if 'tls' in params:
+            node['tls'] = params['tls'][0].lower() == 'true'
+        if 'hop' in params:
+            node['hop-interval'] = int(params['hop'][0])
         
         # 添加可选的 Hysteria2 特定参数
         if 'obfs' in params:
@@ -603,7 +694,7 @@ def get_country_emoji(ip_address):
             logging.debug(f"{ip_address} emoji is None")
             return "🌍"
     except Exception as e:
-        logging.error(f"Error getting country emoji for {ip_address}: {e}")
+        #logging.error(f"Error getting country emoji for {ip_address}: {e}")
         return "🌍"
 
 def decode_url_to_nodes(url):
@@ -682,7 +773,7 @@ if __name__ == "__main__":
     try:
         nodes = decode_url_to_nodes(url = "https://raw.githubusercontent.com/mheidari98/.proxy/refs/heads/main/all")
         yaml_output = yaml.dump({'proxies': nodes}, allow_unicode=True)
-        # print(yaml_output)  # 保留这一个print用于输出YAML内容
+        print(yaml_output)  # 保留这一个print用于输出YAML内容
     except ImportError as e:
         logging.error(f"缺少必要的依赖库: {e}")
         logging.error("请运行以下命令安装所需依赖:")
