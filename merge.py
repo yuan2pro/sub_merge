@@ -27,7 +27,7 @@ def merge_proxies(directory, output_file):
             os.remove(filepath)
 
     logging.info(f"Total proxies: {len(all_proxies)}")
-    nodes_nums = 600;
+    nodes_nums = 200;
     # 每1000条生成一个yaml文件
     for i in range(0, len(all_proxies), nodes_nums):
         if len(all_proxies[i:]) - nodes_nums < 0:

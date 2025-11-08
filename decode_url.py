@@ -357,53 +357,78 @@ def decode_ss_link(ss_link):
         server = None
         port = None
 
-        # Try standard SS format first: base64(method:password)@server:port
-        try:
-            # Validate base64 format - must be multiple of 4 or valid with padding
-            link_len = len(ss_link)
-            if link_len % 4 == 1:
-                # Invalid base64 - cannot be 1 mod 4
-                raise ValueError("Invalid base64 length")
-
-            # Add padding to base64 if needed
-            missing_padding = link_len % 4
-            if missing_padding:
-                padded_link = ss_link + '=' * (4 - missing_padding)
-            else:
-                padded_link = ss_link
-
-            decoded_bytes = base64.b64decode(padded_link)
+        # 尝试多种解析方法
+        parsed = False
+        
+        # 方法1: 尝试标准SS格式: base64(method:password)@server:port
+        if not parsed:
             try:
-                decoded = decoded_bytes.decode('utf-8')
-            except UnicodeDecodeError:
-                # If UTF-8 decoding fails, the base64 might contain binary data
-                # This is an invalid SS link format
-                raise ValueError("Base64 content is not valid UTF-8 text")
+                # Validate base64 format - must be multiple of 4 or valid with padding
+                link_len = len(ss_link)
+                if link_len % 4 != 1:  # 只有当长度模4不等于1时才可能是有效base64
+                    # Add padding to base64 if needed
+                    missing_padding = link_len % 4
+                    if missing_padding:
+                        padded_link = ss_link + '=' * (4 - missing_padding)
+                    else:
+                        padded_link = ss_link
 
-            if '@' in decoded:
-                method_pass, server_port = decoded.split('@', 1)
-                if ':' in method_pass:
-                    method, password = method_pass.split(':', 1)
-                else:
-                    raise ValueError("Invalid method:password format")
+                    decoded_bytes = base64.b64decode(padded_link, validate=False)
+                    decoded = decoded_bytes.decode('utf-8')
+                    
+                    if '@' in decoded:
+                        method_pass, server_port = decoded.split('@', 1)
+                        if ':' in method_pass:
+                            method, password = method_pass.split(':', 1)
+                        else:
+                            raise ValueError("Invalid method:password format")
 
-                # 安全地分割服务器和端口
-                if ':' in server_port:
-                    server, port = server_port.rsplit(':', 1)
-                else:
-                    raise ValueError("Invalid server:port format")
-            else:
-                raise ValueError("Invalid SS link format - missing '@'")
-        except Exception as e:
-            # If standard format fails, try alternative parsing
-            logging.debug(f"Standard SS parsing failed, trying alternative: {e}")
+                        # 安全地分割服务器和端口
+                        if ':' in server_port:
+                            server, port = server_port.rsplit(':', 1)
+                            parsed = True
+                        else:
+                            raise ValueError("Invalid server:port format")
+            except Exception as e:
+                logging.debug(f"Method 1 (standard base64) failed: {e}")
+        
+        # 方法2: 尝试直接解析格式: method:password@server:port
+        if not parsed:
+            try:
+                if '@' in ss_link and ':' in ss_link:
+                    method_pass, server_port = ss_link.split('@', 1)
+                    if ':' in method_pass:
+                        method, password = method_pass.split(':', 1)
+                    else:
+                        raise ValueError("Invalid method:password format")
 
-            # Check if it's already in decoded format: method:password@server:port
-            if '@' in ss_link and ':' in ss_link:
-                try:
+                    if ':' in server_port:
+                        server, port = server_port.rsplit(':', 1)
+                        parsed = True
+                    else:
+                        raise ValueError("Invalid server:port format")
+            except Exception as e:
+                logging.debug(f"Method 2 (direct) failed: {e}")
+        
+        # 方法3: 尝试base64解码method_pass部分: base64(method:password)@server:port
+        if not parsed:
+            try:
+                if '@' in ss_link and ':' in ss_link:
                     parts = ss_link.split('@', 1)
                     if len(parts) == 2:
-                        method_pass, server_port = parts
+                        method_pass_b64, server_port = parts
+                        
+                        # 解码method_pass部分
+                        link_len = len(method_pass_b64)
+                        missing_padding = link_len % 4
+                        if missing_padding:
+                            padded_method_pass = method_pass_b64 + '=' * (4 - missing_padding)
+                        else:
+                            padded_method_pass = method_pass_b64
+                            
+                        method_pass_bytes = base64.b64decode(padded_method_pass, validate=False)
+                        method_pass = method_pass_bytes.decode('utf-8')
+                        
                         if ':' in method_pass:
                             method, password = method_pass.split(':', 1)
                         else:
@@ -411,16 +436,16 @@ def decode_ss_link(ss_link):
 
                         if ':' in server_port:
                             server, port = server_port.rsplit(':', 1)
+                            parsed = True
                         else:
                             raise ValueError("Invalid server:port format")
-                    else:
-                        raise ValueError("Invalid SS link format")
-                except Exception as alt_e:
-                    logging.debug(f"Skipping SS link due to parsing failure: {ss_link[:50]}... (standard: {e}, alternative: {alt_e})")
-                    return None
-            else:
-                logging.debug(f"Skipping SS link due to invalid format: {ss_link[:50]}...")
-                return None
+            except Exception as e:
+                logging.debug(f"Method 3 (base64 method_pass) failed: {e}")
+
+        # 如果所有方法都失败了
+        if not parsed:
+            logging.debug(f"Skipping SS link due to parsing failure: {ss_link[:50]}...")
+            return None
 
         # Validate required fields
         if not all([method, password, server, port]):
@@ -462,7 +487,7 @@ def decode_ss_link(ss_link):
         return {
             'type': 'ss',
             'name': f"{emoji} {base_name}",
-            'server': server,
+            'server': server.strip(),
             'port': int(port),
             'cipher': cipher,
             'password': password,
