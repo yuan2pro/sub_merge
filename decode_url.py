@@ -345,10 +345,6 @@ def decode_ss_link(ss_link):
         if ss_link.startswith('ss://'):
             ss_link = ss_link[5:]
 
-        # 移除名称部分，我们将使用随机名称
-        if '#' in ss_link:
-            ss_link = ss_link.split('#', 1)[0]
-
         # 生成基础名称
         base_name = f"Node-{str(uuid.uuid4())[:8]}"
 
@@ -356,6 +352,23 @@ def decode_ss_link(ss_link):
         password = None
         server = None
         port = None
+
+        # 解析URL中的查询参数
+        parsed_url = urlparse(ss_link)
+        params = parse_qs(parsed_url.query)
+        
+        # 如果URL中有参数，处理plugin参数
+        plugin = None
+        if 'plugin' in params:
+            plugin = params['plugin'][0]
+
+        # 移除查询参数部分，只保留主要部分
+        if '?' in ss_link:
+            ss_link = ss_link.split('?', 1)[0]
+
+        # 移除名称部分
+        if '#' in ss_link:
+            ss_link = ss_link.split('#', 1)[0]
 
         # 尝试多种解析方法
         parsed = False
@@ -482,9 +495,32 @@ def decode_ss_link(ss_link):
         if cipher not in supported_ciphers:
             logging.warning(f"SS节点加密方式 {cipher} 不被Clash和sing-box同时支持，已丢弃")
             return None
+            
+        # 清理端口字符串，移除可能的查询参数和其他干扰字符
+        def clean_port(port_str):
+            if not port_str:
+                return port_str
+                
+            # 移除查询参数
+            if '?' in port_str:
+                port_str = port_str.split('?', 1)[0]
+                
+            # 移除末尾的斜杠
+            if port_str.endswith('/'):
+                port_str = port_str[:-1]
+                
+            # 移除其他可能的干扰字符（如路径分隔符等）
+            port_str = port_str.strip()
+            
+            return port_str
+        
+        port = clean_port(port)
+            
         # 添加国旗 emoji
         emoji = get_country_emoji(server)
-        return {
+        
+        # 构建返回节点
+        node = {
             'type': 'ss',
             'name': f"{emoji} {base_name}",
             'server': server.strip(),
@@ -493,6 +529,22 @@ def decode_ss_link(ss_link):
             'password': password,
             'udp': True
         }
+        
+        # 如果有plugin参数，则添加到节点配置中
+        if plugin:
+            node['plugin'] = plugin
+            # 如果plugin有选项，也添加plugin-opts
+            if 'plugin-opts' in params:
+                # 简化处理，实际应该解析plugin-opts的值
+                node['plugin-opts'] = params['plugin-opts'][0]
+            
+        return node
+    except ValueError as e:
+        if "invalid literal for int() with base 10" in str(e):
+            logging.error(f"Error parsing SS link: Port is not a valid integer. Original error: {e}")
+        else:
+            logging.error(f"Error parsing SS link: {e}")
+        return None
     except Exception as e:
         logging.error(f"Error parsing SS link: {e}")
         return None
