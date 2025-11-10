@@ -212,6 +212,7 @@ def decode_vless_link(vless_link):
             sid = params.get('sid', [''])[0]
             reality_opts = {'public-key': pbk, 'short-id': sid}
             try:
+                valid_pbk = False
                 if pbk:
                     # Fix base64 padding
                     missing_padding = len(pbk) % 4
@@ -219,22 +220,30 @@ def decode_vless_link(vless_link):
                         padded_pbk = pbk + '=' * (4 - missing_padding)
                     else:
                         padded_pbk = pbk
-                    # Verify the padded string is valid base64
+                    # Verify the padded string is valid base64 and store the result
                     base64.b64decode(padded_pbk)
                     # Use the padded version
                     reality_opts['public-key'] = padded_pbk
+                    valid_pbk = True
+                    
                 if sid:
                     sid_bytes = bytes.fromhex(sid)
                     if len(sid_bytes) > 8:
                         raise ValueError("short-id too long")
+                        
                 # Only add reality-opts if both pbk and sid are valid or if at least one is valid
-                if (pbk and 'public-key' in reality_opts) or sid:
+                if (pbk and valid_pbk) or (sid and len(sid) > 0):
                     node['reality-opts'] = reality_opts
                     # 处理 fingerprint
                     if 'fp' in params:
                         node['client-fingerprint'] = params['fp'][0]
+                elif pbk or sid:
+                    # If we have params but they're invalid, show a warning
+                    logging.warning(f"Invalid REALITY params in VLESS URL: pbk valid: {valid_pbk}, sid present: {len(sid) > 0}")
+                    if 'reality-opts' in node:
+                        del node['reality-opts']
             except Exception as e:
-                logging.debug(f"Invalid REALITY params in VLESS URL: {e}")
+                logging.warning(f"Invalid REALITY params in VLESS URL: {e}")
                 if 'reality-opts' in node:
                     del node['reality-opts']
         return node
