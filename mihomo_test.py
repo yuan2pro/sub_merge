@@ -83,9 +83,9 @@ def test_single_proxy_multiprocess(args):
             except:
                 pass
 
-def test_proxies_with_mihomo_api(input_yaml, output_yaml, timeout=10, max_delay=500):
+def test_proxies_with_mihomo_api(input_yaml, output_yaml, timeout=5, max_delay=1000):
     """
-    读取yaml文件，使用多进程并行测试代理，确保临时文件被正确清理
+    读取yaml文件，使用顺序测试代理（GitHub Action兼容）
     """
     print(f"读取配置文件: {input_yaml}")
 
@@ -119,23 +119,22 @@ def test_proxies_with_mihomo_api(input_yaml, output_yaml, timeout=10, max_delay=
             yaml.safe_dump({'proxies': []}, f, allow_unicode=True, default_flow_style=False)
         return 0, len(all_proxies)
 
-    # 使用多进程并行测试代理
-    print(f"开始多进程测试 {len(valid_proxies)} 个代理...")
-
-    # 确定进程数
-    max_workers = min(len(valid_proxies), max(1, cpu_count() - 1))
-    print(f"使用 {max_workers} 个进程进行并行测试")
-
-    proxy_args = [(proxy, timeout) for proxy in valid_proxies]
+    # 顺序测试代理（GitHub Action兼容）
+    print(f"开始顺序测试 {len(valid_proxies)} 个代理...")
 
     results = []
-    with Pool(processes=max_workers, maxtasksperchild=1) as pool:
-        # 使用imap_unordered获取结果
-        async_results = pool.imap_unordered(test_single_proxy_multiprocess, proxy_args)
-
-        # 使用tqdm显示进度
-        for result in tqdm(async_results, total=len(proxy_args), desc="测试进度", unit="个"):
+    for proxy in tqdm(valid_proxies, desc="测试进度", unit="个"):
+        try:
+            result = test_single_proxy(proxy, timeout)
             results.append(result)
+        except Exception as e:
+            results.append({
+                'name': proxy['name'],
+                'config_valid': False,
+                'health_status': 'fail',
+                'message': f'测试异常: {str(e)}',
+                'delay': 0
+            })
 
     # 过滤和保存结果
     passed_proxies = []
@@ -168,8 +167,8 @@ def test_proxies_with_mihomo_api(input_yaml, output_yaml, timeout=10, max_delay=
     # 输出失败的代理
     if failed_proxies:
         print("\n失败的代理节点:")
-        for proxy in failed_proxies:
-            if proxy['delay'] > 0:
+        for proxy in failed_proxies[:10]:  # 只显示前10个失败的
+            if proxy.get('delay', 0) > 0:
                 print(f"  - {proxy['name']}: 延迟 {proxy['delay']} ms - {proxy['reason']}")
             else:
                 print(f"  - {proxy['name']}: {proxy['reason']}")
@@ -179,7 +178,7 @@ def test_proxies_with_mihomo_api(input_yaml, output_yaml, timeout=10, max_delay=
         print("\n通过的代理节点:")
         passed_results = [r for r in results if r['config_valid'] and r['health_status'] == 'pass' and r['delay'] <= max_delay]
         passed_results.sort(key=lambda x: x['delay'])
-        for result in passed_results:
+        for result in passed_results[:10]:  # 只显示前10个通过的
             delay_info = f"{result['delay']} ms" if result['delay'] > 0 else "N/A"
             print(f"  - {result['name']}: 延迟 {delay_info}")
 
@@ -348,9 +347,9 @@ def create_mihomo_config(proxy):
     return config
 
 
-def test_single_proxy(proxy, timeout=15):
+def test_single_proxy(proxy, timeout=5):
     """
-    测试单个代理的可用性
+    测试单个代理的可用性（GitHub Action优化版）
     """
     # 创建临时配置文件
     config = create_mihomo_config(proxy)
@@ -360,6 +359,26 @@ def test_single_proxy(proxy, timeout=15):
         config_path = config_file.name
 
     try:
+        # 检查mihomo是否可用
+        try:
+            result = subprocess.run(['which', 'mihomo'], capture_output=True, text=True, timeout=5)
+            if result.returncode != 0:
+                return {
+                    'name': proxy['name'],
+                    'config_valid': False,
+                    'health_status': 'fail',
+                    'message': 'Mihomo not found in PATH',
+                    'delay': 0
+                }
+        except:
+            return {
+                'name': proxy['name'],
+                'config_valid': False,
+                'health_status': 'fail',
+                'message': 'Cannot check mihomo availability',
+                'delay': 0
+            }
+
         # 启动mihomo测试配置是否有效
         cmd = ['mihomo', '-f', config_path, '-t']
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
@@ -369,20 +388,36 @@ def test_single_proxy(proxy, timeout=15):
             # 配置有效，使用MihomoManager进行健康检查
             manager = MihomoManager(config_path)
             try:
-                manager.start(timeout=30)
-                health_result = manager.health_check(proxy['name'], timeout=timeout)
+                if manager.start(timeout=15):  # 减少启动超时时间
+                    health_result = manager.health_check(proxy['name'], timeout=timeout)
+                    return {
+                        'name': proxy['name'],
+                        'config_valid': True,
+                        'health_status': health_result['status'],
+                        'message': health_result['message'],
+                        'delay': health_result['delay']
+                    }
+                else:
+                    return {
+                        'name': proxy['name'],
+                        'config_valid': False,
+                        'health_status': 'fail',
+                        'message': 'Failed to start mihomo service',
+                        'delay': 0
+                    }
+            except Exception as e:
                 return {
                     'name': proxy['name'],
-                    'config_valid': True,
-                    'health_status': health_result['status'],
-                    'message': health_result['message'],
-                    'delay': health_result['delay']
+                    'config_valid': False,
+                    'health_status': 'fail',
+                    'message': f'Mihomo service error: {str(e)}',
+                    'delay': 0
                 }
             finally:
                 manager.stop()
         else:
             # 测试失败
-            error_msg = result.stderr.strip() if result.stderr else 'Unknown error'
+            error_msg = result.stderr.strip() if result.stderr else 'Configuration test failed'
             return {
                 'name': proxy['name'],
                 'config_valid': False,
@@ -399,26 +434,21 @@ def test_single_proxy(proxy, timeout=15):
             'message': f'Test timeout after {timeout} seconds',
             'delay': 0
         }
-    except FileNotFoundError:
-        return {
-            'name': proxy['name'],
-            'config_valid': False,
-            'health_status': 'fail',
-            'message': 'Mihomo executable not found. Please install mihomo first.',
-            'delay': 0
-        }
     except Exception as e:
         return {
             'name': proxy['name'],
             'config_valid': False,
             'health_status': 'fail',
-            'message': str(e),
+            'message': f'Test error: {str(e)}',
             'delay': 0
         }
     finally:
         # 清理临时文件
         if os.path.exists(config_path):
-            os.unlink(config_path)
+            try:
+                os.unlink(config_path)
+            except:
+                pass
 
 
 
