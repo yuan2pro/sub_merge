@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import atexit
 import json
 import os
@@ -461,74 +458,98 @@ def main():
     proxy_dir = 'sub'
     timeout = 3  # 测试超时时间
 
-    # 查找所有 merged_proxies_*.yaml 文件
-    file_list = []
-    for filename in os.listdir(proxy_dir):
-        if filename.startswith('merged_proxies_') and filename.endswith('.yaml'):
-            input_path = os.path.join(proxy_dir, filename)
-            output_path = input_path.replace('.yaml', '_mihomo_test.yaml')
-            file_list.append({
-                'filename': filename,
-                'input_path': input_path,
-                'output_path': output_path
-            })
+    try:
+        # 检查目录是否存在
+        if not os.path.exists(proxy_dir):
+            print(f"错误: 目录 '{proxy_dir}' 不存在")
+            return
 
-    print(f"发现 {len(file_list)} 个YAML文件")
-
-    if not file_list:
-        print("没有找到需要处理的YAML文件")
-        return
-
-    print("开始顺序处理文件...")
-
-    processed_results = []
-
-    # 顺序处理文件
-    for file_info in tqdm(file_list, desc="文件处理进度", unit="个"):
+        # 查找所有 merged_proxies_*.yaml 文件
+        file_list = []
         try:
-            print(f"\n开始处理文件: {file_info['filename']}")
-            passed, filtered = test_proxies_with_mihomo_api(
-                file_info['input_path'],
-                file_info['output_path'],
-                timeout=timeout
-            )
-            processed_results.append({
-                'filename': file_info['filename'],
-                'success': True,
-                'passed': passed,
-                'filtered': filtered
-            })
-            print(f"完成处理文件: {file_info['filename']} (保留 {passed}, 过滤 {filtered})")
-        except Exception as e:
-            print(f"错误处理文件 {file_info['filename']}: {str(e)}")
-            processed_results.append({
-                'filename': file_info['filename'],
-                'success': False,
-                'passed': 0,
-                'filtered': 0,
-                'error': str(e)
-            })
+            for filename in os.listdir(proxy_dir):
+                if filename.startswith('merged_proxies_') and filename.endswith('.yaml'):
+                    input_path = os.path.join(proxy_dir, filename)
+                    output_path = input_path.replace('.yaml', '_mihomo_test.yaml')
+                    file_list.append({
+                        'filename': filename,
+                        'input_path': input_path,
+                        'output_path': output_path
+                    })
+        except OSError as e:
+            print(f"错误: 无法读取目录 '{proxy_dir}': {e}")
+            return
 
-    # 统计结果
-    processed_count = len([r for r in processed_results if r['success']])
-    total_passed = sum(r['passed'] for r in processed_results if r['success'])
-    total_filtered = sum(r['filtered'] for r in processed_results if r['success'])
-    error_count = len([r for r in processed_results if not r['success']])
+        print(f"发现 {len(file_list)} 个YAML文件")
 
-    print(f"\n顺序处理完成: {processed_count} 个文件成功, {error_count} 个失败")
-    print(f"总计: 保留 {total_passed} 个代理, 过滤 {total_filtered} 个代理")
+        if not file_list:
+            print("没有找到需要处理的YAML文件")
+            return
 
-    if error_count > 0:
-        print("\n失败的文件:")
-        for result in processed_results:
-            if not result['success']:
-                print(f"  - {result['filename']}: {result.get('error', '未知错误')}")
+        print("开始顺序处理文件...")
 
-    # 删除原始文件
-    for file_info in file_list:
-        if os.path.exists(file_info['input_path']):
-            os.remove(file_info['input_path'])
-            print(f"已删除: {file_info['input_path']}")
+        processed_results = []
+
+        # 顺序处理文件（不使用tqdm，避免可能的兼容性问题）
+        for i, file_info in enumerate(file_list):
+            try:
+                print(f"\n[{i+1}/{len(file_list)}] 开始处理文件: {file_info['filename']}")
+                passed, filtered = test_proxies_with_mihomo_api(
+                    file_info['input_path'],
+                    file_info['output_path'],
+                    timeout=timeout
+                )
+                processed_results.append({
+                    'filename': file_info['filename'],
+                    'success': True,
+                    'passed': passed,
+                    'filtered': filtered
+                })
+                print(f"完成处理文件: {file_info['filename']} (保留 {passed}, 过滤 {filtered})")
+            except Exception as e:
+                print(f"错误处理文件 {file_info['filename']}: {str(e)}")
+                processed_results.append({
+                    'filename': file_info['filename'],
+                    'success': False,
+                    'passed': 0,
+                    'filtered': 0,
+                    'error': str(e)
+                })
+
+        # 统计结果
+        processed_count = len([r for r in processed_results if r['success']])
+        total_passed = sum(r['passed'] for r in processed_results if r['success'])
+        total_filtered = sum(r['filtered'] for r in processed_results if r['success'])
+        error_count = len([r for r in processed_results if not r['success']])
+
+        print(f"\n顺序处理完成: {processed_count} 个文件成功, {error_count} 个失败")
+        print(f"总计: 保留 {total_passed} 个代理, 过滤 {total_filtered} 个代理")
+
+        if error_count > 0:
+            print("\n失败的文件:")
+            for result in processed_results:
+                if not result['success']:
+                    print(f"  - {result['filename']}: {result.get('error', '未知错误')}")
+
+        # 删除原始文件
+        for file_info in file_list:
+            if os.path.exists(file_info['input_path']):
+                try:
+                    os.remove(file_info['input_path'])
+                    print(f"已删除: {file_info['input_path']}")
+                except OSError as e:
+                    print(f"警告: 无法删除文件 {file_info['input_path']}: {e}")
+
+    except KeyboardInterrupt:
+        print("\n收到中断信号，正在清理...")
+        cleanup_mihomo_processes()
+    except Exception as e:
+        print(f"程序执行出错: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        # 确保清理所有mihomo进程
+        cleanup_mihomo_processes()
 
 if __name__ == '__main__':
     main()
