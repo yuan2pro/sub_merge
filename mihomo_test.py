@@ -7,7 +7,9 @@ import os
 import subprocess
 import tempfile
 import time
+from multiprocessing import Pool, cpu_count
 
+import requests
 import yaml
 from tqdm import tqdm
 
@@ -29,97 +31,7 @@ def cleanup_mihomo_processes():
 cleanup_mihomo_processes()
 atexit.register(cleanup_mihomo_processes)
 
-def find_available_port(start_port=9090, max_attempts=100):
-    """查找可用的端口"""
-    import socket
-    for port in range(start_port, start_port + max_attempts):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('127.0.0.1', port))
-                return port
-        except OSError:
-            continue
-    raise RuntimeError(f"无法找到可用端口 (尝试了 {start_port} 到 {start_port + max_attempts - 1})")
 
-def start_mihomo_service(config_path, api_port):
-    """启动mihomo服务"""
-    # 测试配置
-    result = subprocess.run(['mihomo', '-f', config_path, '-t'], capture_output=True, text=True, timeout=10)
-    if result.returncode != 0:
-        error_msg = f"配置测试失败:\n"
-        error_msg += f"退出代码: {result.returncode}\n"
-        if result.stdout:
-            error_msg += f"标准输出: {result.stdout}\n"
-        if result.stderr:
-            error_msg += f"标准错误: {result.stderr}\n"
-        raise Exception(error_msg)
-
-    # 启动服务 - 使用mihomo正确的API参数
-    cmd = ['mihomo', '-f', config_path, '-ext-ctl', f"127.0.0.1:{api_port}"]
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-    # 等待服务启动
-    start_time = time.time()
-    while time.time() - start_time < 30:
-        try:
-            result = subprocess.run(['curl', '-s', f"http://127.0.0.1:{api_port}/version"], capture_output=True, text=True, timeout=2)
-            if result.returncode == 0:
-                return process
-        except:
-            time.sleep(0.5)
-
-    # 如果启动超时，获取进程的错误输出
-    process.terminate()
-    try:
-        stdout, stderr = process.communicate(timeout=5)
-        error_msg = "mihomo服务启动超时\n"
-        if stdout:
-            error_msg += f"标准输出: {stdout}\n"
-        if stderr:
-            error_msg += f"标准错误: {stderr}\n"
-    except subprocess.TimeoutExpired:
-        process.kill()
-        error_msg = "mihomo服务启动超时且无法终止进程"
-
-    raise Exception(error_msg)
-
-def test_proxy_with_curl(proxy_name, api_port, timeout):
-    """使用curl调用mihomo API测试代理"""
-    cmd = [
-        'curl', '-s', '--max-time', str(timeout + 2),
-        f"http://127.0.0.1:{api_port}/proxies/{proxy_name}/delay",
-        '-G',
-        '--data-urlencode', f"timeout={timeout * 1000}",
-        '--data-urlencode', "url=http://www.google.com/generate_204"
-    ]
-
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 5)
-
-    if result.returncode == 0 and result.stdout:
-        try:
-            data = json.loads(result.stdout.strip())
-            delay = data.get('delay', 0)
-            return {
-                'name': proxy_name,
-                'status': 'pass',
-                'message': 'Health check passed',
-                'delay': delay
-            }
-        except json.JSONDecodeError:
-            return {
-                'name': proxy_name,
-                'status': 'fail',
-                'message': f'Invalid JSON response: {result.stdout}',
-                'delay': 0
-            }
-    else:
-        error_msg = result.stderr.strip() if result.stderr else f'curl failed with code {result.returncode}'
-        return {
-            'name': proxy_name,
-            'status': 'fail',
-            'message': f'API call failed: {error_msg}',
-            'delay': 0
-        }
 
 def validate_proxy_config(proxy):
     """
@@ -144,9 +56,36 @@ def validate_proxy_config(proxy):
 
     return True
 
+def test_single_proxy_multiprocess(args):
+    """
+    多进程中测试单个代理，确保临时文件被正确清理
+    """
+    proxy, timeout = args
+
+    # 创建临时配置文件
+    config = create_mihomo_config(proxy)
+    config_path = None
+
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as config_file:
+            yaml.dump(config, config_file, allow_unicode=True)
+            config_path = config_file.name
+
+        # 测试代理
+        result = test_single_proxy(proxy, timeout)
+        return result
+
+    finally:
+        # 确保临时文件被删除
+        if config_path and os.path.exists(config_path):
+            try:
+                os.unlink(config_path)
+            except:
+                pass
+
 def test_proxies_with_mihomo_api(input_yaml, output_yaml, timeout=10, max_delay=500):
     """
-    读取yaml文件，使用mihomo命令行测试代理
+    读取yaml文件，使用多进程并行测试代理，确保临时文件被正确清理
     """
     print(f"读取配置文件: {input_yaml}")
 
@@ -180,13 +119,23 @@ def test_proxies_with_mihomo_api(input_yaml, output_yaml, timeout=10, max_delay=
             yaml.safe_dump({'proxies': []}, f, allow_unicode=True, default_flow_style=False)
         return 0, len(all_proxies)
 
-    # 测试所有有效代理
-    results = []
-    print(f"开始测试 {len(valid_proxies)} 个代理...")
+    # 使用多进程并行测试代理
+    print(f"开始多进程测试 {len(valid_proxies)} 个代理...")
 
-    for proxy in tqdm(valid_proxies, desc="测试进度", unit="个"):
-        result = test_single_proxy(proxy, timeout)
-        results.append(result)
+    # 确定进程数
+    max_workers = min(len(valid_proxies), max(1, cpu_count() - 1))
+    print(f"使用 {max_workers} 个进程进行并行测试")
+
+    proxy_args = [(proxy, timeout) for proxy in valid_proxies]
+
+    results = []
+    with Pool(processes=max_workers, maxtasksperchild=1) as pool:
+        # 使用imap_unordered获取结果
+        async_results = pool.imap_unordered(test_single_proxy_multiprocess, proxy_args)
+
+        # 使用tqdm显示进度
+        for result in tqdm(async_results, total=len(proxy_args), desc="测试进度", unit="个"):
+            results.append(result)
 
     # 过滤和保存结果
     passed_proxies = []
@@ -246,43 +195,83 @@ class MihomoManager:
         self.process = None
         self.api_url = f"http://127.0.0.1:{self.api_port}"
 
-    def _find_available_port(self, start_port=9090, max_attempts=100):
-        """查找可用的端口"""
+    def _find_available_port(self, start_port=9090, max_attempts=1000):
+        """查找可用的端口，在多进程环境中确保唯一性"""
         import socket
-        for port in range(start_port, start_port + max_attempts):
+        import os
+
+        # 在多进程中，通过进程ID增加随机性
+        process_offset = (os.getpid() % 100) * 10
+        actual_start = start_port + process_offset
+
+        for port in range(actual_start, actual_start + max_attempts):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     s.bind(('127.0.0.1', port))
                     return port
             except OSError:
                 continue
+
+        # 如果在偏移范围内找不到，尝试原始范围
+        for port in range(start_port, start_port + max_attempts):
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    s.bind(('127.0.0.1', port))
+                    return port
+            except OSError:
+                continue
+
         raise RuntimeError(f"无法找到可用端口 (尝试了 {start_port} 到 {start_port + max_attempts - 1})")
 
-    def start(self, timeout=30):
+    def start(self, timeout=60):
         """启动mihomo服务"""
         try:
             # 先测试配置
             cmd_test = ['mihomo', '-f', self.config_path, '-t']
-            result = subprocess.run(cmd_test, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(cmd_test, capture_output=True, text=True, timeout=15)
             if result.returncode != 0:
-                raise Exception(f"配置测试失败: {result.stderr}")
+                error_msg = f"配置测试失败: {result.stderr}"
+                if result.stdout:
+                    error_msg += f"\n标准输出: {result.stdout}"
+                raise Exception(error_msg)
 
             # 启动mihomo服务
             cmd_start = ['mihomo', '-f', self.config_path, '-ext-ctl', f"127.0.0.1:{self.api_port}"]
-            self.process = subprocess.Popen(cmd_start, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.process = subprocess.Popen(cmd_start, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-            # 等待服务启动
+            # 等待服务启动，增加重试次数和更短的检查间隔
             start_time = time.time()
-            while time.time() - start_time < timeout:
+            check_count = 0
+            max_checks = int(timeout / 0.2)  # 每200ms检查一次
+
+            while check_count < max_checks:
                 try:
-                    response = requests.get(f"{self.api_url}/version", timeout=2)
+                    # 使用更短的超时时间进行检查
+                    response = requests.get(f"{self.api_url}/version", timeout=1)
                     if response.status_code == 200:
                         return True
-                except:
-                    time.sleep(0.5)
-                    continue
+                except requests.exceptions.RequestException:
+                    # 忽略连接错误，继续等待
+                    pass
 
-            raise Exception("mihomo服务启动超时")
+                check_count += 1
+                time.sleep(0.2)  # 200ms间隔
+
+            # 如果超时，获取进程状态信息
+            if self.process.poll() is None:
+                # 进程还在运行，可能是启动中
+                raise Exception(f"mihomo服务启动超时 (进程仍在运行，PID: {self.process.pid})")
+            else:
+                # 进程已经退出，获取退出信息
+                stdout, stderr = self.process.communicate()
+                error_msg = f"mihomo服务启动失败 (退出码: {self.process.returncode})"
+                if stderr:
+                    error_msg += f"\n错误输出: {stderr}"
+                if stdout:
+                    error_msg += f"\n标准输出: {stdout}"
+                raise Exception(error_msg)
 
         except Exception as e:
             self.stop()
@@ -298,7 +287,7 @@ class MihomoManager:
                 self.process.kill()
             self.process = None
 
-    def health_check(self, proxy_name, timeout=10, url="http://www.google.com/generate_204"):
+    def health_check(self, proxy_name, timeout=10, url="https://www.gstatic.com/generate_204"):
         """使用API进行健康检查"""
         try:
             # 使用mihomo API进行延迟测试
@@ -377,15 +366,20 @@ def test_single_proxy(proxy, timeout=15):
 
         # 解析结果
         if result.returncode == 0:
-            # 配置有效，进行mihomo内置健康检查
-            health_result = mihomo_health_check(proxy, config_path, timeout)
-            return {
-                'name': proxy['name'],
-                'config_valid': True,
-                'health_status': health_result['status'],
-                'message': health_result['message'],
-                'delay': health_result['delay']
-            }
+            # 配置有效，使用MihomoManager进行健康检查
+            manager = MihomoManager(config_path)
+            try:
+                manager.start(timeout=30)
+                health_result = manager.health_check(proxy['name'], timeout=timeout)
+                return {
+                    'name': proxy['name'],
+                    'config_valid': True,
+                    'health_status': health_result['status'],
+                    'message': health_result['message'],
+                    'delay': health_result['delay']
+                }
+            finally:
+                manager.stop()
         else:
             # 测试失败
             error_msg = result.stderr.strip() if result.stderr else 'Unknown error'
@@ -427,572 +421,7 @@ def test_single_proxy(proxy, timeout=15):
             os.unlink(config_path)
 
 
-def test_proxy_with_mihomo(proxy, timeout=15):
-    """
-    使用mihomo测试单个代理的可用性
-    """
-    result = test_single_proxy(proxy, timeout)
-    
-    # 转换为之前使用的格式以保持兼容性
-    return {
-        'name': result['name'],
-        'status': result['health_status'] if result['config_valid'] else 'fail',
-        'message': result['message'],
-        'delay': result['delay']
-    }
 
-def test_single_proxy_api(args):
-    """
-    使用API测试单个代理（用于多进程，每个进程独立启动服务）
-    """
-    proxy_name, config_path, timeout = args
-
-    manager = None
-    try:
-        # 每个进程独立启动mihomo服务
-        manager = MihomoManager(config_path)
-        manager.start(timeout=30)
-
-        health_result = manager.health_check(proxy_name, timeout=timeout)
-        return {
-            'name': proxy_name,
-            'status': health_result['status'],
-            'message': health_result['message'],
-            'delay': health_result['delay']
-        }
-    except Exception as e:
-        return {
-            'name': proxy_name,
-            'status': 'fail',
-            'message': f'测试错误: {str(e)}',
-            'delay': 0
-        }
-    finally:
-        if manager:
-            manager.stop()
-
-def test_proxies_batch(proxies, timeout=10, max_workers=None):
-    """
-    批量测试代理（每个代理独立启动mihomo服务进行API测试）
-    """
-    results = []
-    print(f"开始测试 {len(proxies)} 个代理...")
-
-    if not proxies:
-        return results
-
-    # 确定进程数
-    if max_workers is None:
-        max_workers = min(len(proxies), max(1, cpu_count() - 1))
-    else:
-        max_workers = min(max_workers, len(proxies))
-
-    if max_workers > 1:
-        print(f"使用多进程独立API测试 (进程数: {max_workers})")
-        # 多进程测试 - 每个进程独立测试一个代理
-        proxy_args = [(proxy, timeout) for proxy in proxies]
-
-        with Pool(processes=max_workers, maxtasksperchild=1) as pool:
-            # 使用imap_unordered获取结果
-            async_results = pool.imap_unordered(test_single_proxy_independent_api, proxy_args)
-
-            # 使用tqdm显示进度
-            for result in tqdm(async_results, total=len(proxy_args), desc="测试进度", unit="个"):
-                results.append(result)
-    else:
-        print("使用单进程独立API测试")
-        # 单进程测试 - 顺序测试每个代理
-        for proxy in tqdm(proxies, desc="测试进度", unit="个"):
-            result = test_single_proxy_independent_api((proxy, timeout))
-            results.append(result)
-
-    return results
-
-def test_single_proxy_commandline(args):
-    """
-    多进程中使用curl命令测试单个代理（避免守护进程创建子进程问题）
-    """
-    proxy, timeout = args
-
-    try:
-        # 使用curl命令直接测试代理连通性
-        start_time = time.time()
-
-        # 构建curl命令，根据代理类型使用不同的参数
-        proxy_type = proxy.get('type', '').lower()
-
-        if proxy_type == 'http' or proxy_type == 'https':
-            # HTTP/HTTPS代理
-            proxy_url = f"http://{proxy['server']}:{proxy['port']}"
-            cmd = [
-                'curl', '-s', '--max-time', str(timeout),
-                '--proxy', proxy_url,
-                'http://www.google.com/generate_204'
-            ]
-        elif proxy_type in ['socks5', 'socks4']:
-            # SOCKS代理
-            proxy_url = f"socks5://{proxy['server']}:{proxy['port']}"
-            cmd = [
-                'curl', '-s', '--max-time', str(timeout),
-                '--socks5', f"{proxy['server']}:{proxy['port']}",
-                'http://www.google.com/generate_204'
-            ]
-        elif proxy_type == 'ss':
-            # Shadowsocks，需要通过mihomo测试
-            return test_single_proxy_via_mihomo(proxy, timeout)
-        elif proxy_type in ['vmess', 'vless', 'trojan']:
-            # V2Ray协议，需要通过mihomo测试
-            return test_single_proxy_via_mihomo(proxy, timeout)
-        else:
-            # 未知类型，使用mihomo测试
-            return test_single_proxy_via_mihomo(proxy, timeout)
-
-        # 执行curl命令
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 2)
-
-        elapsed_time = int((time.time() - start_time) * 1000)  # 毫秒
-
-        if result.returncode == 0:
-            return {
-                'name': proxy['name'],
-                'status': 'pass',
-                'message': 'Health check passed',
-                'delay': elapsed_time
-            }
-        else:
-            error_msg = result.stderr.strip() if result.stderr else 'Connection failed'
-            return {
-                'name': proxy['name'],
-                'status': 'fail',
-                'message': f'curl error: {error_msg}',
-                'delay': 0
-            }
-
-    except subprocess.TimeoutExpired:
-        return {
-            'name': proxy['name'],
-            'status': 'fail',
-            'message': f'Health check timeout after {timeout} seconds',
-            'delay': 0
-        }
-    except Exception as e:
-        return {
-            'name': proxy['name'],
-            'status': 'fail',
-            'message': f'Health check error: {str(e)}',
-            'delay': 0
-        }
-
-def test_single_proxy_curl(args):
-    """
-    多进程中使用curl命令测试单个代理
-    """
-    proxy, timeout = args
-
-    try:
-        # 使用curl命令直接测试代理连通性
-        start_time = time.time()
-
-        # 构建curl命令，根据代理类型使用不同的参数
-        proxy_type = proxy.get('type', '').lower()
-
-        if proxy_type == 'http' or proxy_type == 'https':
-            # HTTP/HTTPS代理
-            cmd = [
-                'curl', '-s', '--max-time', str(timeout),
-                '--proxy', f"http://{proxy['server']}:{proxy['port']}",
-                'http://www.google.com/generate_204'
-            ]
-        elif proxy_type in ['socks5', 'socks4']:
-            # SOCKS代理
-            cmd = [
-                'curl', '-s', '--max-time', str(timeout),
-                '--socks5', f"{proxy['server']}:{proxy['port']}",
-                'http://www.google.com/generate_204'
-            ]
-        else:
-            # 其他协议（VMess, VLESS, Trojan, SS等）使用mihomo命令行测试
-            return test_single_proxy_via_mihomo(proxy, timeout)
-
-        # 执行curl命令
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 2)
-
-        elapsed_time = int((time.time() - start_time) * 1000)  # 毫秒
-
-        if result.returncode == 0:
-            return {
-                'name': proxy['name'],
-                'status': 'pass',
-                'message': 'Health check passed',
-                'delay': elapsed_time
-            }
-        else:
-            error_msg = result.stderr.strip() if result.stderr else 'Connection failed'
-            return {
-                'name': proxy['name'],
-                'status': 'fail',
-                'message': f'curl error: {error_msg}',
-                'delay': 0
-            }
-
-    except subprocess.TimeoutExpired:
-        return {
-            'name': proxy['name'],
-            'status': 'fail',
-            'message': f'Health check timeout after {timeout} seconds',
-            'delay': 0
-        }
-    except Exception as e:
-        return {
-            'name': proxy['name'],
-            'status': 'fail',
-            'message': f'Health check error: {str(e)}',
-            'delay': 0
-        }
-
-def test_single_proxy_api_mode(args):
-    """
-    单进程中使用mihomo API测试单个代理
-    """
-    proxy, timeout = args
-
-    # 创建单代理配置文件
-    config = create_mihomo_config(proxy)
-
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as config_file:
-        yaml.dump(config, config_file, allow_unicode=True)
-        config_path = config_file.name
-
-    manager = None
-    try:
-        # 启动mihomo服务
-        manager = MihomoManager(config_path)
-        manager.start(timeout=30)
-
-        # 使用API进行健康检查
-        health_result = manager.health_check(proxy['name'], timeout=timeout)
-        return {
-            'name': proxy['name'],
-            'status': health_result['status'],
-            'message': health_result['message'],
-            'delay': health_result['delay']
-        }
-    except Exception as e:
-        # 如果API测试失败，回退到命令行测试
-        try:
-            result = test_single_proxy(proxy, timeout)
-            return {
-                'name': result['name'],
-                'status': result['health_status'] if result['config_valid'] else 'fail',
-                'message': result['message'],
-                'delay': result['delay']
-            }
-        except Exception as fallback_error:
-            return {
-                'name': proxy['name'],
-                'status': 'fail',
-                'message': f'API测试失败: {str(e)}, 回退测试也失败: {str(fallback_error)}',
-                'delay': 0
-            }
-    finally:
-        if manager:
-            manager.stop()
-        # 清理临时文件
-        if os.path.exists(config_path):
-            os.unlink(config_path)
-
-def test_single_proxy_curl_api(args):
-    """
-    使用curl调用mihomo API进行healthcheck
-    """
-    proxy_name, api_port, timeout = args
-
-    try:
-        # 使用curl调用mihomo API进行延迟测试
-        cmd = [
-            'curl', '-s', '--max-time', str(timeout + 2),
-            f"http://127.0.0.1:{api_port}/proxies/{proxy_name}/delay",
-            '-G',  # GET请求
-            '--data-urlencode', f"timeout={timeout * 1000}",
-            '--data-urlencode', "url=http://www.google.com/generate_204"
-        ]
-
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 5)
-
-        if result.returncode == 0 and result.stdout:
-            try:
-                # 解析JSON响应
-                data = json.loads(result.stdout.strip())
-                delay = data.get('delay', 0)
-                return {
-                    'name': proxy_name,
-                    'status': 'pass',
-                    'message': 'Health check passed',
-                    'delay': delay
-                }
-            except json.JSONDecodeError:
-                return {
-                    'name': proxy_name,
-                    'status': 'fail',
-                    'message': f'Invalid JSON response: {result.stdout}',
-                    'delay': 0
-                }
-        else:
-            error_msg = result.stderr.strip() if result.stderr else f'curl failed with code {result.returncode}'
-            return {
-                'name': proxy_name,
-                'status': 'fail',
-                'message': f'API call failed: {error_msg}',
-                'delay': 0
-            }
-
-    except subprocess.TimeoutExpired:
-        return {
-            'name': proxy_name,
-            'status': 'fail',
-            'message': f'Health check timeout after {timeout} seconds',
-            'delay': 0
-        }
-    except Exception as e:
-        return {
-            'name': proxy_name,
-            'status': 'fail',
-            'message': f'Health check error: {str(e)}',
-            'delay': 0
-        }
-
-def test_single_proxy_independent_api(args):
-    """
-    每个代理独立启动mihomo服务进行API测试
-    """
-    proxy, timeout = args
-
-    # 创建单代理配置文件
-    config = create_mihomo_config(proxy)
-
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as config_file:
-        yaml.dump(config, config_file, allow_unicode=True)
-        config_path = config_file.name
-
-    manager = None
-    try:
-        # 为这个代理独立启动mihomo服务
-        manager = MihomoManager(config_path)
-        manager.start(timeout=30)
-
-        # 使用API进行健康检查
-        health_result = manager.health_check(proxy['name'], timeout=timeout)
-        return {
-            'name': proxy['name'],
-            'status': health_result['status'],
-            'message': health_result['message'],
-            'delay': health_result['delay']
-        }
-    except Exception as e:
-        # 如果API测试失败，回退到命令行测试
-        try:
-            result = test_single_proxy(proxy, timeout)
-            return {
-                'name': result['name'],
-                'status': result['health_status'] if result['config_valid'] else 'fail',
-                'message': result['message'],
-                'delay': result['delay']
-            }
-        except Exception as fallback_error:
-            return {
-                'name': proxy['name'],
-                'status': 'fail',
-                'message': f'API测试失败: {str(e)}, 回退测试也失败: {str(fallback_error)}',
-                'delay': 0
-            }
-    finally:
-        if manager:
-            manager.stop()
-        # 清理临时文件
-        if os.path.exists(config_path):
-            os.unlink(config_path)
-
-def test_single_proxy_via_mihomo(proxy, timeout):
-    """
-    通过mihomo命令行测试代理（用于不支持curl的代理类型）
-    """
-    # 创建单代理配置文件
-    config = create_mihomo_config(proxy)
-
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as config_file:
-        yaml.dump(config, config_file, allow_unicode=True)
-        config_path = config_file.name
-
-    try:
-        # 使用命令行方式测试代理
-        result = test_single_proxy(proxy, timeout)
-        return {
-            'name': result['name'],
-            'status': result['health_status'] if result['config_valid'] else 'fail',
-            'message': result['message'],
-            'delay': result['delay']
-        }
-    except Exception as e:
-        return {
-            'name': proxy['name'],
-            'status': 'fail',
-            'message': f'命令行测试失败: {str(e)}',
-            'delay': 0
-        }
-    finally:
-        # 清理临时文件
-        if os.path.exists(config_path):
-            os.unlink(config_path)
-
-
-def mihomo_health_check(proxy, config_path, timeout=10):
-    """
-    使用mihomo内置的healthcheck功能
-    """
-    try:
-        # 使用mihomo的delay测试功能（不带-url参数）
-        cmd = ['mihomo', '-f', config_path, '-d', proxy['name']]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-        
-        # 解析结果
-        if result.returncode == 0 and result.stdout:
-            # 解析输出中的延迟信息
-            output = result.stdout.strip()
-            # 查找延迟信息
-            if 'ms' in output:
-                # 提取延迟数值
-                import re
-                delay_matches = re.findall(r'(\d+)\s*ms', output)
-                if delay_matches:
-                    delay = int(delay_matches[0])  # 取第一个匹配的数值
-                    return {
-                        'status': 'pass',
-                        'message': 'Health check passed',
-                        'delay': delay
-                    }
-            
-            # 如果没有找到明确的延迟信息，但命令成功执行
-            return {
-                'status': 'pass',
-                'message': 'Health check passed (no delay info)',
-                'delay': 0
-            }
-        else:
-            error_msg = result.stderr.strip() if result.stderr else 'Health check failed'
-            return {
-                'status': 'fail',
-                'message': error_msg,
-                'delay': 0
-            }
-            
-    except subprocess.TimeoutExpired:
-        return {
-            'status': 'fail',
-            'message': f'Health check timeout after {timeout} seconds',
-            'delay': 0
-        }
-    except Exception as e:
-        return {
-            'status': 'fail',
-            'message': f'Health check error: {str(e)}',
-            'delay': 0
-        }
-
-
-def filter_and_save_proxies(input_yaml, output_yaml, timeout=15, max_delay=5000):
-    """
-    过滤代理并保存结果
-    """
-    # 读取原始代理
-    with open(input_yaml, 'r', encoding='utf-8') as f:
-        data = yaml.safe_load(f)
-        proxies = data.get('proxies', [])
-
-    print(f"读取到 {len(proxies)} 个代理")
-
-    # 测试代理
-    test_results = test_proxies_batch(proxies, timeout=timeout)
-
-    # 过滤通过的代理
-    passed_proxies = []
-    failed_proxies = []
-    for result in test_results:
-        if result['status'] == 'pass' and result['delay'] <= max_delay:
-            # 找到原始代理配置
-            original_proxy = next((p for p in proxies if p['name'] == result['name']), None)
-            if original_proxy:
-                passed_proxies.append(original_proxy)
-        else:
-            # 记录失败的代理及原因
-            failed_proxies.append({
-                'name': result['name'],
-                'reason': result['message'],
-                'delay': result['delay']
-            })
-
-    # 保存过滤后的代理，即使为空也要创建文件
-    os.makedirs(os.path.dirname(output_yaml), exist_ok=True)
-    with open(output_yaml, 'w', encoding='utf-8') as f:
-        yaml.safe_dump({'proxies': passed_proxies}, f, allow_unicode=True, default_flow_style=False)
-
-    # 输出统计信息
-    print(f"过滤结果: 原始 {len(proxies)} 个 → 保留 {len(passed_proxies)} 个")
-    
-    # 输出失败的代理及原因
-    if failed_proxies:
-        print("\n失败的代理节点:")
-        for proxy in failed_proxies:
-            if proxy['delay'] > 0:
-                print(f"  - {proxy['name']}: 延迟 {proxy['delay']} ms - {proxy['reason']}")
-            else:
-                print(f"  - {proxy['name']}: {proxy['reason']}")
-    
-    # 输出通过的代理及延迟
-    if passed_proxies:
-        print("\n通过的代理节点:")
-        passed_results = [r for r in test_results if r['status'] == 'pass' and r['delay'] <= max_delay]
-        # 按延迟排序
-        passed_results.sort(key=lambda x: x['delay'])
-        for result in passed_results:
-            delay_info = f"{result['delay']} ms" if result['delay'] > 0 else "N/A"
-            print(f"  - {result['name']}: 延迟 {delay_info}")
-    else:
-        print("\n没有通过测试的代理节点")
-    
-    return len(passed_proxies), len(proxies) - len(passed_proxies)
-
-
-def process_single_file(args):
-    """
-    处理单个文件，用于多进程执行
-    """
-    file_info, timeout = args
-    input_path = file_info['input_path']
-    output_path = file_info['output_path']
-    filename = file_info['filename']
-
-    try:
-        print(f"开始处理文件: {filename}")
-        passed, filtered = filter_and_save_proxies(
-            input_path, output_path,
-            timeout=timeout
-        )
-        print(f"完成处理文件: {filename} (保留 {passed}, 过滤 {filtered})")
-        return {
-            'filename': filename,
-            'success': True,
-            'passed': passed,
-            'filtered': filtered
-        }
-    except Exception as e:
-        print(f"错误处理文件 {filename}: {str(e)}")
-        return {
-            'filename': filename,
-            'success': False,
-            'passed': 0,
-            'filtered': 0,
-            'error': str(e)
-        }
 
 
 def main():
