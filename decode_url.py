@@ -64,17 +64,30 @@ def decode_vless_link(vless_link):
                 # 处理reality参数
                 pbk = params.get('pbk', [''])[0]
                 sid = params.get('sid', [''])[0]
-                if pbk or sid:
-                    reality_opts = {}
-                    if pbk:
-                        # 修复base64填充
-                        missing_padding = len(pbk) % 4
-                        if missing_padding:
-                            pbk = pbk + '=' * (4 - missing_padding)
-                        reality_opts['public-key'] = pbk
-                    if sid:
-                        reality_opts['short-id'] = sid
-                    node['reality-opts'] = reality_opts
+
+                # 验证REALITY配置完整性
+                if not pbk or not sid:
+                    logging.warning(f"VLESS节点 {node['name']} REALITY配置不完整: pbk={pbk[:10] if pbk else 'None'}, sid={sid[:10] if sid else 'None'}")
+                    return None  # 过滤掉配置不完整的REALITY节点
+
+                # 验证public-key格式
+                if not pbk.endswith('='):
+                    logging.warning(f"VLESS节点 {node['name']} REALITY public-key格式无效: {pbk[:20]}...")
+                    return None
+
+                # 验证short-id格式
+                if not sid or len(sid) < 4:
+                    logging.warning(f"VLESS节点 {node['name']} REALITY short-id格式无效: {sid}")
+                    return None
+
+                reality_opts = {}
+                # 修复base64填充
+                missing_padding = len(pbk) % 4
+                if missing_padding:
+                    pbk = pbk + '=' * (4 - missing_padding)
+                reality_opts['public-key'] = pbk
+                reality_opts['short-id'] = sid
+                node['reality-opts'] = reality_opts
 
         if 'type' in params:
             node['network'] = params['type'][0]

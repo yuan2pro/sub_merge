@@ -215,6 +215,36 @@ def run(index, shared_list):
                             except Exception as e:
                                 not_proxies.add(proxie['server'])
                                 continue
+
+                        # 过滤REALITY配置不完整的节点
+                        if proxie.get('type') == 'vless':
+                            reality_opts = proxie.get('reality-opts', {})
+                            if reality_opts:
+                                # 检查REALITY必需字段
+                                required_reality = ['public-key', 'short-id']
+                                missing_fields = []
+                                for field in required_reality:
+                                    if field not in reality_opts or not reality_opts[field]:
+                                        missing_fields.append(field)
+
+                                if missing_fields:
+                                    logging.warning(f"REALITY节点 {name} 缺少字段: {missing_fields}")
+                                    not_proxies.add(proxie['server'])
+                                    continue
+
+                                # 验证public-key格式
+                                public_key = reality_opts.get('public-key', '')
+                                if not public_key.endswith('='):
+                                    logging.warning(f"REALITY节点 {name} public-key格式无效")
+                                    not_proxies.add(proxie['server'])
+                                    continue
+
+                                # 验证short-id格式
+                                short_id = reality_opts.get('short-id', '')
+                                if not short_id or len(short_id) < 4:
+                                    logging.warning(f"REALITY节点 {name} short-id格式无效")
+                                    not_proxies.add(proxie['server'])
+                                    continue
                         
                         # add name emoji
                         # if not has_emoji(name):

@@ -46,6 +46,29 @@ def validate_proxy_config(proxy: Dict[str, Any]) -> bool:
     except (ValueError, TypeError):
         return False
 
+    # 特殊检查REALITY协议
+    if proxy.get('type') == 'vless':
+        reality_opts = proxy.get('reality-opts', {})
+        if reality_opts:
+            # 检查REALITY必需字段
+            required_reality = ['public-key', 'short-id']
+            for field in required_reality:
+                if field not in reality_opts or not reality_opts[field]:
+                    print(f"  ⚠ REALITY配置缺失或为空: {field}")
+                    return False
+
+            # 验证public-key格式 (应该是以=结尾的base64字符串)
+            public_key = reality_opts.get('public-key', '')
+            if not public_key.endswith('='):
+                print(f"  ⚠ REALITY public-key格式无效: {public_key[:20]}...")
+                return False
+
+            # 验证short-id格式
+            short_id = reality_opts.get('short-id', '')
+            if not short_id or len(short_id) < 4:
+                print(f"  ⚠ REALITY short-id格式无效: {short_id}")
+                return False
+
     return True
 
 
