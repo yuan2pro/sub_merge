@@ -49,34 +49,52 @@ def validate_proxy_config(proxy: Dict[str, Any]) -> bool:
     return True
 
 
-def test_proxy_delay(proxy_name: str, api_url: str, test_url: str, timeout: int) -> tuple[bool, int]:
+def test_proxy_delay(proxy_name: str, api_url: str, test_url: str, timeout: int, max_retries: int = 2) -> tuple[bool, int]:
     """
-    测试单个代理的延迟
+    测试单个代理的延迟，支持重试机制
 
     返回: (是否成功, 延迟毫秒)
     """
-    try:
-        # 对代理名称进行URL编码
-        encoded_name = urllib.parse.quote(proxy_name)
+    # 多个测试URL备选
+    test_urls = [
+        test_url,
+        "https://www.google.com/generate_204",
+        "https://connectivitycheck.gstatic.com/generate_204",
+        "https://www.gstatic.com/generate_204"
+    ]
 
-        # 使用mihomo API进行延迟测试
-        response = requests.get(
-            f"{api_url}/proxies/{encoded_name}/delay",
-            params={'timeout': timeout * 1000, 'url': test_url},
-            timeout=timeout + 2
-        )
+    for attempt in range(max_retries):
+        for url in test_urls:
+            try:
+                # 对代理名称进行URL编码
+                encoded_name = urllib.parse.quote(proxy_name)
 
-        if response.status_code == 200 or response.status_code == 204:
-            data = response.json()
-            delay = data.get('delay', 0)
-            return True, delay
-        else:
-            return False, 0
+                # 使用mihomo API进行延迟测试
+                response = requests.get(
+                    f"{api_url}/proxies/{encoded_name}/delay",
+                    params={'timeout': timeout * 1000, 'url': url},
+                    timeout=timeout + 2
+                )
 
-    except requests.exceptions.Timeout:
-        return False, 0
-    except Exception as e:
-        return False, 0
+                if response.status_code in [200, 204]:
+                    try:
+                        data = response.json()
+                        delay = data.get('delay', 0)
+                        if delay > 0:  # 只要有延迟值就认为成功
+                            return True, delay
+                    except:
+                        pass
+
+                # 如果是最后一次尝试，返回失败
+                if attempt == max_retries - 1 and url == test_urls[-1]:
+                    return False, 0
+
+            except requests.exceptions.Timeout:
+                continue
+            except Exception as e:
+                continue
+
+    return False, 0
 
 
 def filter_proxies(input_file: str, output_file: str, max_delay: int,
@@ -118,12 +136,15 @@ def filter_proxies(input_file: str, output_file: str, max_delay: int,
 
             success, delay = test_proxy_delay(proxy_name, api_url, test_url, timeout)
 
-            if success and 0 < delay <= max_delay:
-                passed_proxies.append(proxy)
-                print(f"  ✓ {proxy_name}: {delay}ms")
+            if success and delay > 0:
+                if delay <= max_delay:
+                    passed_proxies.append(proxy)
+                    print(f"  ✓ {proxy_name}: {delay}ms")
+                else:
+                    print(f"  ⚠ {proxy_name}: {delay}ms (延迟较高，但可用)")
             else:
-                reason = f"延迟过高 ({delay}ms)" if delay > 0 else "连接失败"
-                print(f"  ✗ {proxy_name}: {reason}")
+                print(f"  ✗ {proxy_name}: 连接失败")
+
 
         # 保存筛选后的配置
         filtered_config = {
