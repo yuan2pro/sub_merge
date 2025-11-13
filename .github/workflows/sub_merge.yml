@@ -15,7 +15,7 @@ jobs:
       - name: install Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: "3.15"
           check-latest: true
 
       - name: Set up Go
@@ -82,22 +82,91 @@ jobs:
           # 将构建的mihomo二进制文件复制到系统PATH中
           sudo cp mihomo /usr/local/bin/
       
-      # mihomo-speedtest-rs筛选节点
-      # - name: mihomo-speedtest
-      #   run: |
-      #     cd ${{ env.CURRENT_DIR }}
-      #     # 循环遍历sub目录下的所有yaml文件
-      #     for file in ${{ env.CURRENT_DIR }}/sub/*.yaml; do
-      #       filename=$(basename "$file")
-      #       echo "Processing $filename..."
-      #       mihomo-speedtest -c "$file" --output "${{ env.CURRENT_DIR }}/sub/${filename%.yaml}-new.yaml" --mihomo-config-dir ./mihomo/temp --use-mihomo --timeout 10 
-      #       rm -rf "$file"
-      #     done
-      #     rm -rf ${{ env.CURRENT_DIR }}/mihomo
+      # 筛选节点：使用mihomo_test.py进行延迟测试和筛选
+      - name: filter nodes with mihomo
+        run: |
+          cd ${{ env.CURRENT_DIR }}
+          # 循环遍历sub目录下的所有yaml文件
+          for file in ${{ env.CURRENT_DIR }}/sub/*.yaml; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              echo "Processing $filename..."
+
+              # 创建临时目录用于mihomo配置
+              temp_dir=$(mktemp -d)
+              config_file="$temp_dir/config.yaml"
+
+              # 复制原配置文件并添加API配置
+              cp "$file" "$config_file"
+              # 添加mihomo API配置
+              echo "" >> "$config_file"
+              echo "# API配置" >> "$config_file"
+              echo "external-controller: 127.0.0.1:9090" >> "$config_file"
+              echo "external-ui: ui" >> "$config_file"
+              echo "secret: test123" >> "$config_file"
+
+              # 启动mihomo
+              mihomo -f "$config_file" > /dev/null 2>&1 &
+              mihomo_pid=$!
+              echo "Started mihomo with PID: $mihomo_pid"
+
+              # 等待mihomo启动
+              sleep 3
+
+              # 创建筛选后的配置文件
+              output_file="${{ env.CURRENT_DIR }}/sub/${filename%.yaml}_filtered.yaml"
+
+              # 调用mihomo_test.py进行筛选，使用原始文件作为输入
+              if python3 ./mihomo_test.py "$file" "$output_file" \
+                  --api-url "http://127.0.0.1:9090" \
+                  --max-delay 500 \
+                  --timeout 10 \
+                  --test-url "https://www.gstatic.com/generate_204"; then
+                echo "Successfully filtered $filename"
+                # 检查是否有节点通过筛选
+                if [ -f "$output_file" ] && grep -q "proxies:" "$output_file"; then
+                  proxy_count=$(python3 -c "import yaml; print(len(yaml.safe_load(open('$output_file'))['proxies']))" 2>/dev/null || echo "0")
+                  echo "Filtered $filename: $proxy_count proxies remaining"
+                else
+                  echo "Warning: Filtered file seems invalid, keeping original"
+                  cp "$file" "$output_file"
+                fi
+              else
+                echo "Warning: Failed to filter $filename, keeping original"
+                cp "$file" "$output_file"
+              fi
+
+              # 停止mihomo
+              kill $mihomo_pid 2>/dev/null || true
+              wait $mihomo_pid 2>/dev/null || true
+
+              # 清理临时目录
+              rm -rf "$temp_dir"
+
+              # 删除原文件
+              rm -f "$file"
+              echo "Completed processing $filename"
+            fi
+          done
+
+          # 输出筛选统计信息
+          echo "::group::Filter Statistics"
+          total_files=$(ls ${{ env.CURRENT_DIR }}/sub/*_filtered.yaml 2>/dev/null | wc -l)
+          total_proxies=0
+          for filtered_file in ${{ env.CURRENT_DIR }}/sub/*_filtered.yaml; do
+            if [ -f "$filtered_file" ]; then
+              proxy_count=$(python3 -c "import yaml; print(len(yaml.safe_load(open('$filtered_file'))['proxies']))" 2>/dev/null || echo "0")
+              total_proxies=$((total_proxies + proxy_count))
+              filename=$(basename "$filtered_file")
+              echo "$filename: $proxy_count proxies"
+            fi
+          done
+          echo "Total filtered files: $total_files"
+          echo "Total remaining proxies: $total_proxies"
+          echo "::endgroup::"
 
       - name: merge nodes
         run: |
-          python ./mihomo_test.py
           python ./merge.py
       
       - name: Checkout clash2singbox repository

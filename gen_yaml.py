@@ -256,24 +256,40 @@ def run(index, shared_list):
 
 
 def split_node(n, shared_list):
-    node_list = {}
     yaml_file = "./sub/" + str(n) + ".yaml"
-    name_list = []
     if shared_list is None:
         logging.error("shared_list is None")
         return
     if n > 100:
         return
-    for list in shared_list:
-        name = list['name']
+
+    # 确保代理名称唯一
+    name_list = []
+    for proxy in shared_list:
+        name = proxy['name']
         if name not in name_list:
             name_list.append(name)
         else:
             name = name + str(len(name_list))
-            list['name'] = name
+            proxy['name'] = name
+
+    # 创建完整的mihomo配置文件
+    config = {
+        "proxies": shared_list,
+        "proxy-groups": [
+            {
+                "name": "Proxy",
+                "type": "select",
+                "proxies": [proxy["name"] for proxy in shared_list]
+            }
+        ],
+        "rules": [
+            "MATCH,Proxy"
+        ]
+    }
+
     with open(yaml_file, "w", encoding="utf-8") as f:
-        node_list['proxies'] = shared_list
-        yaml.safe_dump(node_list, f, allow_unicode=True)
+        yaml.safe_dump(config, f, allow_unicode=True, default_flow_style=False)
 
 
 if __name__ == '__main__':
@@ -287,7 +303,7 @@ if __name__ == '__main__':
         p.start()
     logging.info("多进程已启动")
 
-    threshold = 2000  # 节点阈值，达到则停止所有子进程
+    threshold = 20000  # 节点阈值，达到则停止所有子进程
     try:
         # 监控子进程与 shared_list 长度
         while any(p.is_alive() for p in processes):
