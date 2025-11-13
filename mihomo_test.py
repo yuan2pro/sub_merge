@@ -18,10 +18,11 @@ mihomo_test.py - 使用mihomo API测试代理节点延迟并筛选可用节点
 
 import argparse
 import sys
-import yaml
-import requests
 import urllib.parse
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
+import requests
+import yaml
 
 
 def validate_proxy_config(proxy: Dict[str, Any]) -> bool:
@@ -65,7 +66,7 @@ def test_proxy_delay(proxy_name: str, api_url: str, test_url: str, timeout: int)
             timeout=timeout + 2
         )
 
-        if response.status_code == 200:
+        if response.status_code == 200 or response.status_code == 204:
             data = response.json()
             delay = data.get('delay', 0)
             return True, delay
