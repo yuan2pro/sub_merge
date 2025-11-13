@@ -60,41 +60,78 @@ def test_proxy_delay(proxy_name: str, api_url: str, test_url: str, timeout: int,
         test_url,
         "https://www.google.com/generate_204",
         "https://connectivitycheck.gstatic.com/generate_204",
-        "https://www.gstatic.com/generate_204"
+        "https://www.gstatic.com/generate_204",
+        "https://httpbin.org/status/204",  # 更稳定的测试URL
+        "https://httpstat.us/204"  # 另一个备选
     ]
 
+    # 对代理名称进行URL编码
+    encoded_name = urllib.parse.quote(proxy_name)
+    api_endpoint = f"{api_url}/proxies/{encoded_name}/delay"
+
+    print(f"    API endpoint: {api_endpoint}")
+
     for attempt in range(max_retries):
-        for url in test_urls:
+        for i, url in enumerate(test_urls):
             try:
-                # 对代理名称进行URL编码
-                encoded_name = urllib.parse.quote(proxy_name)
+                print(f"    Attempt {attempt + 1}, URL {i + 1}: {url}")
 
                 # 使用mihomo API进行延迟测试
                 response = requests.get(
-                    f"{api_url}/proxies/{encoded_name}/delay",
+                    api_endpoint,
                     params={'timeout': timeout * 1000, 'url': url},
                     timeout=timeout + 2
                 )
+
+                print(f"    Response status: {response.status_code}")
 
                 if response.status_code in [200, 204]:
                     try:
                         data = response.json()
                         delay = data.get('delay', 0)
+                        print(f"    Response data: {data}")
                         if delay > 0:  # 只要有延迟值就认为成功
                             return True, delay
-                    except:
-                        pass
-
-                # 如果是最后一次尝试，返回失败
-                if attempt == max_retries - 1 and url == test_urls[-1]:
-                    return False, 0
+                        else:
+                            print(f"    Delay is 0, trying next URL")
+                    except Exception as e:
+                        print(f"    Failed to parse JSON response: {e}")
+                        print(f"    Raw response: {response.text}")
+                else:
+                    print(f"    Bad status code: {response.status_code}")
+                    print(f"    Response: {response.text[:200]}")
 
             except requests.exceptions.Timeout:
+                print(f"    Timeout after {timeout + 2} seconds")
+                continue
+            except requests.exceptions.ConnectionError as e:
+                print(f"    Connection error: {e}")
                 continue
             except Exception as e:
+                print(f"    Unexpected error: {e}")
                 continue
 
+    print(f"    All attempts failed for proxy {proxy_name}")
     return False, 0
+
+
+def test_mihomo_api_connection(api_url: str) -> bool:
+    """
+    测试mihomo API连接是否正常
+    """
+    try:
+        print(f"测试mihomo API连接: {api_url}")
+        response = requests.get(f"{api_url}/version", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            print(f"mihomo API连接成功，版本: {data.get('version', 'unknown')}")
+            return True
+        else:
+            print(f"mihomo API响应异常: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"mihomo API连接失败: {e}")
+        return False
 
 
 def filter_proxies(input_file: str, output_file: str, max_delay: int,
@@ -105,6 +142,11 @@ def filter_proxies(input_file: str, output_file: str, max_delay: int,
     返回: (通过的节点数, 总节点数)
     """
     try:
+        # 首先测试mihomo API连接
+        if not test_mihomo_api_connection(api_url):
+            print("错误: mihomo API不可用，无法进行测速")
+            sys.exit(1)
+
         # 读取输入配置文件
         with open(input_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)

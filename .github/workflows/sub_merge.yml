@@ -106,12 +106,27 @@ jobs:
               echo "secret: test123" >> "$config_file"
 
               # 启动mihomo
-              mihomo -f "$config_file" > /dev/null 2>&1 &
+              echo "Starting mihomo with config: $config_file"
+              mihomo -f "$config_file" > mihomo_$filename.log 2>&1 &
               mihomo_pid=$!
               echo "Started mihomo with PID: $mihomo_pid"
 
-              # 等待mihomo启动
-              sleep 3
+              # 等待mihomo启动并检查API可用性
+              echo "Waiting for mihomo to start..."
+              for i in {1..10}; do
+                if curl -s "http://127.0.0.1:9090/version" > /dev/null 2>&1; then
+                  echo "mihomo API is ready"
+                  break
+                fi
+                echo "Waiting... ($i/10)"
+                sleep 2
+              done
+
+              # 再次检查API是否可用
+              if ! curl -s "http://127.0.0.1:9090/version" > /dev/null 2>&1; then
+                echo "Warning: mihomo API still not available after 20 seconds"
+                cat mihomo_$filename.log
+              fi
 
               # 创建筛选后的配置文件
               output_file="${{ env.CURRENT_DIR }}/sub/${filename%.yaml}_filtered.yaml"
