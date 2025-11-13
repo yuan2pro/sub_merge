@@ -123,17 +123,6 @@ jobs:
                   --timeout 10 \
                   --test-url "https://www.gstatic.com/generate_204"; then
                 echo "Successfully filtered $filename"
-                # 检查是否有节点通过筛选
-                if [ -f "$output_file" ] && grep -q "proxies:" "$output_file"; then
-                  proxy_count=$(python3 -c "import yaml; print(len(yaml.safe_load(open('$output_file'))['proxies']))" 2>/dev/null || echo "0")
-                  echo "Filtered $filename: $proxy_count proxies remaining"
-                else
-                  echo "Warning: Filtered file seems invalid, keeping original"
-                  cp "$file" "$output_file"
-                fi
-              else
-                echo "Warning: Failed to filter $filename, keeping original"
-                cp "$file" "$output_file"
               fi
 
               # 停止mihomo

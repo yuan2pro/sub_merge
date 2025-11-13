@@ -75,7 +75,6 @@ def test_proxy_delay(proxy_name: str, api_url: str, test_url: str, timeout: int)
     except requests.exceptions.Timeout:
         return False, 0
     except Exception as e:
-        print(f"  测试异常: {str(e)}")
         return False, 0
 
 
