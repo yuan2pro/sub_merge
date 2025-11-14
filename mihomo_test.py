@@ -354,6 +354,11 @@ def parallel_filter_proxies(directory: str) -> int:
         print('No YAML files found')
         return 0
 
+    # 只保留前10个文件
+    if len(yaml_files) > 10:
+        print(f'Found {len(yaml_files)} files, keeping only first 10')
+        yaml_files = yaml_files[:10]
+
     cpu_count = multiprocessing.cpu_count()
     max_processes = min(cpu_count, len(yaml_files))
 
