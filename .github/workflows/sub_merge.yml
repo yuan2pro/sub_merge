@@ -82,89 +82,11 @@ jobs:
           # 将构建的mihomo二进制文件复制到系统PATH中
           sudo cp mihomo /usr/local/bin/
       
-      # 筛选节点：使用mihomo_test.py进行延迟测试和筛选
+      # 筛选节点：使用多进程多端口mihomo进行延迟测试和筛选
       - name: filter nodes with mihomo
         run: |
           cd ${{ env.CURRENT_DIR }}
-          # 循环遍历sub目录下的所有yaml文件
-          for file in ${{ env.CURRENT_DIR }}/sub/*.yaml; do
-            if [ -f "$file" ]; then
-              filename=$(basename "$file")
-              echo "Processing $filename..."
-
-              # 创建临时目录用于mihomo配置
-              temp_dir=$(mktemp -d)
-              config_file="$temp_dir/config.yaml"
-
-              # 复制原配置文件并添加API配置
-              cp "$file" "$config_file"
-              # 添加mihomo API配置
-              echo "" >> "$config_file"
-              echo "# API配置" >> "$config_file"
-              echo "external-controller: 127.0.0.1:9090" >> "$config_file"
-              echo "external-ui: ui" >> "$config_file"
-              echo "secret: test123" >> "$config_file"
-
-              # 启动mihomo
-              echo "Starting mihomo with config: $config_file"
-              mihomo -f "$config_file" > mihomo_$filename.log 2>&1 &
-              mihomo_pid=$!
-              echo "Started mihomo with PID: $mihomo_pid"
-
-              # 等待mihomo启动并检查API可用性
-              echo "Waiting for mihomo to start..."
-              api_ready=false
-              for i in {1..15}; do
-                if curl -s -H "Authorization: Bearer test123" "http://127.0.0.1:9090/version" > /dev/null 2>&1; then
-                  echo "mihomo API is ready"
-                  api_ready=true
-                  break
-                fi
-                echo "Waiting... ($i/15)"
-                sleep 2
-              done
-
-              # 检查API是否可用
-              if [ "$api_ready" = false ]; then
-                echo "::error::mihomo API not available after 30 seconds"
-                echo "mihomo log output:"
-                cat mihomo_$filename.log
-                echo "Config file content:"
-                head -50 "$config_file"
-                # 停止mihomo并跳过这个文件
-                kill $mihomo_pid 2>/dev/null || true
-                wait $mihomo_pid 2>/dev/null || true
-                rm -rf "$temp_dir"
-                rm -f "$file"
-                continue
-              fi
-
-              # 创建筛选后的配置文件
-              output_file="${{ env.CURRENT_DIR }}/sub/${filename%.yaml}_filtered.yaml"
-
-              # 调用mihomo_test.py进行筛选，使用原始文件作为输入
-              if python3 ./mihomo_test.py "$file" "$output_file" \
-                  --api-url "http://127.0.0.1:9090" \
-                  --api-secret "test123" \
-                  --max-delay 5000 \
-                  --timeout 15 \
-                  --test-url "https://www.gstatic.com/generate_204"; then
-                echo "Successfully filtered $filename"
-              fi
-
-              # 停止mihomo
-              kill $mihomo_pid 2>/dev/null || true
-              wait $mihomo_pid 2>/dev/null || true
-
-              # 清理临时目录
-              rm -rf "$temp_dir"
-
-              # 删除原文件
-              rm -f "$file"
-              echo "Completed processing $filename"
-            fi
-          done
-
+          python3 ./mihomo_test.py --parallel ./sub
           # 输出筛选统计信息
           echo "::group::Filter Statistics"
           total_files=$(ls ${{ env.CURRENT_DIR }}/sub/*_filtered.yaml 2>/dev/null | wc -l)
