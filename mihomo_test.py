@@ -72,7 +72,7 @@ def validate_proxy_config(proxy: Dict[str, Any]) -> bool:
     return True
 
 
-def test_proxy_delay(proxy_name: str, api_url: str, test_url: str, timeout: int, max_retries: int = 2) -> tuple[bool, int]:
+def test_proxy_delay(proxy_name: str, api_url: str, test_url: str, timeout: int, api_secret: str = None, max_retries: int = 2) -> tuple[bool, int]:
     """
     测试单个代理的延迟，支持重试机制
 
@@ -94,6 +94,11 @@ def test_proxy_delay(proxy_name: str, api_url: str, test_url: str, timeout: int,
 
     print(f"    API endpoint: {api_endpoint}")
 
+    # 准备认证头
+    headers = {}
+    if api_secret:
+        headers['Authorization'] = f'Bearer {api_secret}'
+
     for attempt in range(max_retries):
         for i, url in enumerate(test_urls):
             try:
@@ -103,6 +108,7 @@ def test_proxy_delay(proxy_name: str, api_url: str, test_url: str, timeout: int,
                 response = requests.get(
                     api_endpoint,
                     params={'timeout': timeout * 1000, 'url': url},
+                    headers=headers,
                     timeout=timeout + 2
                 )
 
@@ -138,19 +144,26 @@ def test_proxy_delay(proxy_name: str, api_url: str, test_url: str, timeout: int,
     return False, 0
 
 
-def test_mihomo_api_connection(api_url: str) -> bool:
+def test_mihomo_api_connection(api_url: str, api_secret: str = None) -> bool:
     """
     测试mihomo API连接是否正常
     """
     try:
         print(f"测试mihomo API连接: {api_url}")
-        response = requests.get(f"{api_url}/version", timeout=5)
+
+        # 准备认证头
+        headers = {}
+        if api_secret:
+            headers['Authorization'] = f'Bearer {api_secret}'
+
+        response = requests.get(f"{api_url}/version", headers=headers, timeout=5)
         if response.status_code == 200:
             data = response.json()
             print(f"mihomo API连接成功，版本: {data.get('version', 'unknown')}")
             return True
         else:
             print(f"mihomo API响应异常: {response.status_code}")
+            print(f"响应内容: {response.text[:200]}")
             return False
     except Exception as e:
         print(f"mihomo API连接失败: {e}")
@@ -158,7 +171,7 @@ def test_mihomo_api_connection(api_url: str) -> bool:
 
 
 def filter_proxies(input_file: str, output_file: str, max_delay: int,
-                  api_url: str, timeout: int, test_url: str) -> tuple[int, int]:
+                  api_url: str, timeout: int, test_url: str, api_secret: str = None) -> tuple[int, int]:
     """
     筛选代理节点
 
@@ -166,7 +179,7 @@ def filter_proxies(input_file: str, output_file: str, max_delay: int,
     """
     try:
         # 首先测试mihomo API连接
-        if not test_mihomo_api_connection(api_url):
+        if not test_mihomo_api_connection(api_url, api_secret):
             print("错误: mihomo API不可用，无法进行测速")
             sys.exit(1)
 
@@ -174,12 +187,18 @@ def filter_proxies(input_file: str, output_file: str, max_delay: int,
         with open(input_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
 
+        # 如果没有指定API secret，尝试从配置文件中读取
+        if not api_secret:
+            api_secret = config.get('secret')
+
         proxies = config.get('proxies', [])
         if not proxies:
             print(f"警告: {input_file} 中没有找到代理配置")
             return 0, 0
 
         print(f"开始测试 {len(proxies)} 个代理节点...")
+        if api_secret:
+            print(f"使用API认证: {api_secret[:10]}...")
 
         # 验证并筛选代理
         valid_proxies = []
@@ -199,7 +218,7 @@ def filter_proxies(input_file: str, output_file: str, max_delay: int,
             proxy_name = proxy.get('name', 'Unknown')
             print(f"测试 {proxy_name}...")
 
-            success, delay = test_proxy_delay(proxy_name, api_url, test_url, timeout)
+            success, delay = test_proxy_delay(proxy_name, api_url, test_url, timeout, api_secret)
 
             if success and delay > 0:
                 if delay <= max_delay:
@@ -257,6 +276,8 @@ def main():
                        help='最大延迟阈值(毫秒), 默认3000')
     parser.add_argument('--api-url', default='http://127.0.0.1:9090',
                        help='mihomo API地址, 默认http://127.0.0.1:9090')
+    parser.add_argument('--api-secret', default=None,
+                       help='mihomo API认证密钥, 默认从配置文件读取')
     parser.add_argument('--timeout', type=int, default=10,
                        help='测试超时时间(秒), 默认10')
     parser.add_argument('--test-url', default='https://www.gstatic.com/generate_204',
@@ -271,7 +292,8 @@ def main():
         args.max_delay,
         args.api_url,
         args.timeout,
-        args.test_url
+        args.test_url,
+        args.api_secret
     )
 
     # 返回退出码：如果有节点通过测试则为0，否则为1

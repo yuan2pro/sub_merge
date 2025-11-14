@@ -24,12 +24,11 @@ supported_ciphers = [
     '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm'
 ]
 
-# 支持的 XTLS flow 类型映射 (xtls-rprx-direct 已废弃，使用 xtls-rprx-origin 或移除)
+# 支持的 XTLS flow 类型映射 (移除不支持的flow类型)
 supported_xtls_flows = {
     'xtls-rprx-vision': 'xtls-rprx-vision',
-    'xtls-rprx-origin': 'xtls-rprx-origin',
     'xtls-rprx-origin-udp443': 'xtls-rprx-origin-udp443',
-    'xtls-rprx-direct': 'xtls-rprx-origin'  # 映射废弃的 direct 到 origin
+    # 移除不支持的 xtls-rprx-origin 和 xtls-rprx-direct
 }
 
 def decode_vless_link(vless_link):
@@ -96,6 +95,10 @@ def decode_vless_link(vless_link):
             flow = params['flow'][0]
             if flow in supported_xtls_flows:
                 node['flow'] = supported_xtls_flows[flow]
+            else:
+                # 不支持的flow类型，记录警告并过滤掉该节点
+                logging.warning(f"VLESS节点 {node['name']} 使用不支持的XTLS flow类型: {flow}")
+                return None
 
         if 'sni' in params:
             node['sni'] = params['sni'][0]

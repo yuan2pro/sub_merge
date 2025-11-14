@@ -115,7 +115,7 @@ jobs:
               echo "Waiting for mihomo to start..."
               api_ready=false
               for i in {1..15}; do
-                if curl -s "http://127.0.0.1:9090/version" > /dev/null 2>&1; then
+                if curl -s -H "Authorization: Bearer test123" "http://127.0.0.1:9090/version" > /dev/null 2>&1; then
                   echo "mihomo API is ready"
                   api_ready=true
                   break
@@ -145,6 +145,7 @@ jobs:
               # 调用mihomo_test.py进行筛选，使用原始文件作为输入
               if python3 ./mihomo_test.py "$file" "$output_file" \
                   --api-url "http://127.0.0.1:9090" \
+                  --api-secret "test123" \
                   --max-delay 5000 \
                   --timeout 15 \
                   --test-url "https://www.gstatic.com/generate_204"; then
