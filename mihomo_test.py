@@ -19,6 +19,7 @@ mihomo_test.py - 使用mihomo API测试代理节点延迟并筛选可用节点
 import argparse
 import multiprocessing
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -28,6 +29,36 @@ from typing import Any, Dict, List
 
 import requests
 import yaml
+
+# 全局超时标志
+timeout_occurred = False
+start_time = None
+
+
+def timeout_handler(signum, frame):
+    """超时信号处理器"""
+    global timeout_occurred
+    timeout_occurred = True
+    print("\n⚠️  运行时间超过5小时，强制退出程序")
+    sys.exit(0)
+
+
+def check_timeout() -> bool:
+    """检查是否超时"""
+    global timeout_occurred, start_time
+    if timeout_occurred:
+        return True
+    
+    if start_time is None:
+        return False
+    
+    # 检查是否超过5小时 (5 * 3600 秒)
+    elapsed = time.time() - start_time
+    if elapsed >= 5 * 3600:  # 5小时
+        print(f"\n⚠️  运行时间超过5小时 (已运行 {elapsed/3600:.2f} 小时)，强制退出程序")
+        sys.exit(0)
+    
+    return False
 
 
 def validate_proxy_config(proxy: Dict[str, Any]) -> bool:
@@ -83,6 +114,10 @@ def test_proxy_delay(proxy_name: str, api_url: str, test_url: str, timeout: int,
 
     返回: (是否成功, 延迟毫秒)
     """
+    # 检查超时
+    if check_timeout():
+        return False, 0
+    
     # 对代理名称进行URL编码
     encoded_name = urllib.parse.quote(proxy_name)
     api_endpoint = f"{api_url}/proxies/{encoded_name}/delay"
@@ -177,6 +212,11 @@ def filter_proxies(input_file: str, output_file: str, max_delay: int,
         passed_proxies = []
 
         for proxy in proxies:
+            # 检查超时
+            if check_timeout():
+                print("\n⚠️  运行时间超过5小时，强制退出程序")
+                sys.exit(0)
+            
             if not validate_proxy_config(proxy):
                 print(f"  ✗ {proxy.get('name', 'Unknown')}: 配置无效")
                 continue
@@ -187,6 +227,11 @@ def filter_proxies(input_file: str, output_file: str, max_delay: int,
 
         # 测试每个代理的延迟
         for proxy in valid_proxies:
+            # 检查超时
+            if check_timeout():
+                print("\n⚠️  运行时间超过5小时，强制退出程序")
+                sys.exit(0)
+                
             proxy_name = proxy.get('name', 'Unknown')
             print(f"测试 {proxy_name}...")
 
@@ -233,6 +278,10 @@ def process_file(file_path: str, port: int) -> bool:
     """
     处理单个YAML文件，使用指定端口运行mihomo实例
     """
+    # 检查超时
+    if check_timeout():
+        return False
+        
     filename = os.path.basename(file_path)
     print(f'Processing {filename} on port {port}...')
 
@@ -274,6 +323,20 @@ def process_file(file_path: str, port: int) -> bool:
     # 等待mihomo启动
     api_ready = False
     for i in range(15):
+        # 检查超时
+        if check_timeout():
+            if mihomo_process:
+                mihomo_process.terminate()
+                try:
+                    mihomo_process.wait(timeout=5)
+                except:
+                    mihomo_process.kill()
+            try:
+                os.system(f'rm -rf {temp_dir}')
+            except:
+                pass
+            return False
+            
         try:
             result = subprocess.run([
                 'curl', '-s', '-H', 'Authorization: Bearer test123',
@@ -354,11 +417,6 @@ def parallel_filter_proxies(directory: str) -> int:
         print('No YAML files found')
         return 0
 
-    # 只保留前10个文件
-    if len(yaml_files) > 10:
-        print(f'Found {len(yaml_files)} files, keeping only first 10')
-        yaml_files = yaml_files[:10]
-
     cpu_count = multiprocessing.cpu_count()
     max_processes = min(cpu_count, len(yaml_files))
 
@@ -392,6 +450,8 @@ def parallel_filter_proxies(directory: str) -> int:
 
 
 def main():
+    global start_time
+    
     parser = argparse.ArgumentParser(
         description="使用mihomo API测试代理节点延迟并筛选可用节点",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -417,6 +477,16 @@ def main():
                        help='测试URL, 默认https://www.gstatic.com/generate_204')
 
     args = parser.parse_args()
+
+    # 设置开始时间和超时控制
+    start_time = time.time()
+    
+    # 设置5小时超时信号
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(5 * 3600)  # 5小时 = 5 * 3600 秒
+    
+    print(f"🕐 程序启动时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
+    print("⏰ 设置5小时运行超时限制")
 
     if args.parallel:
         # 并行处理模式
