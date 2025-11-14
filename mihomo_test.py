@@ -17,12 +17,12 @@ mihomo_test.py - 使用mihomo API测试代理节点延迟并筛选可用节点
 """
 
 import argparse
+import multiprocessing
 import os
 import subprocess
 import sys
 import time
 import urllib.parse
-import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List
 
@@ -196,11 +196,6 @@ def filter_proxies(input_file: str, output_file: str, max_delay: int,
                 if delay <= max_delay:
                     passed_proxies.append(proxy)
                     print(f"  ✓ {proxy_name}: {delay}ms")
-                else:
-                    print(f"  ⚠ {proxy_name}: {delay}ms (延迟较高，但可用)")
-            else:
-                print(f"  ✗ {proxy_name}: 连接失败")
-
 
         # 保存筛选后的配置
         filtered_config = {
@@ -312,7 +307,7 @@ def process_file(file_path: str, port: int) -> bool:
     try:
         passed, total = filter_proxies(
             file_path, output_file,
-            max_delay=5000,
+            max_delay=1000,
             api_url=f'http://127.0.0.1:{port}',
             timeout=15,
             test_url='https://www.gstatic.com/generate_204',

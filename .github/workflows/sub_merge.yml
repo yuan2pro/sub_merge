@@ -84,6 +84,7 @@ jobs:
       
       # 筛选节点：使用多进程多端口mihomo进行延迟测试和筛选
       - name: filter nodes with mihomo
+        timeout-minutes: 300
         run: |
           cd ${{ env.CURRENT_DIR }}
           python3 ./mihomo_test.py --parallel ./sub
@@ -105,6 +106,7 @@ jobs:
 
       - name: merge nodes
         run: |
+          find ${{ env.CURRENT_DIR }}/sub -type f -name "*.yaml" -not -name "*_filtered.yaml" -delete
           python ./merge.py
       
       - name: Checkout clash2singbox repository
