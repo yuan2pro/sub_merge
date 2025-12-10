@@ -8,41 +8,49 @@
     "servers": [
       {
         "tag": "proxyDns",
-        "address": "https://dns.google/dns-query",
-        "address_resolver": "defaultDns",
-        "address_strategy": "ipv4_only",
+        "type": "https",
+        "server": "dns.google",
+        "domain_resolver": "google",
+        "strategy": "ipv4_only",
         "detour": "🚀 节点选择"
       },
       {
         "tag": "localDns",
-        "address": "223.5.5.5",
-        "address_resolver": "defaultDns",
-        "address_strategy": "ipv4_only",
-        "detour": "🟢 直连"
-      },
-      {
-        "tag": "defaultDns",
-        "address": "223.5.5.5",
-        "address_strategy": "ipv4_only",
+        "type": "tcp",
+        "server": "223.5.5.5",
+        "strategy": "ipv4_only",
         "detour": "🟢 直连"
       }
     ],
     "rules": [
-      { "outbound": "any", "server": "defaultDns", "disable_cache": true },
-      { "clash_mode": "direct", "server": "localDns" },
-      { "clash_mode": "global", "server": "proxyDns" },
-      { "rule_set": "geosite-cn", "server": "localDns" },
-      { "rule_set": "geosite-geolocation-!cn", "server": "proxyDns" }
+      {
+        "clash_mode": "direct",
+        "server": "localDns"
+      },
+      {
+        "clash_mode": "global",
+        "server": "proxyDns"
+      },
+      {
+        "rule_set": "geosite-cn",
+        "server": "localDns"
+      },
+      {
+        "rule_set": "geosite-geolocation-!cn",
+        "server": "proxyDns"
+      }
     ],
-    "final": "localDns",
-    "strategy": "ipv4_only"
+    "final": "proxyDns"
   },
   "inbounds": [
     {
       "type": "tun",
-      "address": "172.19.0.1/30",
+      "address": [
+        "172.19.0.1/30"
+      ],
       "mtu": 9000,
-      "auto_route": true
+      "auto_route": true,
+      "strict_route": true
     }
   ],
   "ntp": {
@@ -50,59 +58,96 @@
     "server": "time.apple.com",
     "server_port": 123,
     "interval": "30m0s",
-    "detour": "direct"
+    "detour": "🟢 直连"
   },
   "outbounds": [
     {
       "tag": "🚀 节点选择",
       "type": "selector",
-      "outbounds": ["🗽 自动", "🌏 亚洲", "🌎 美洲", "🌍 欧洲", "🟢 直连"],
-      "default": "🗽 自动"
+      "outbounds": [
+        "🗽 自动",
+        "🌏 亚洲",
+        "🌎 美洲",
+        "🌍 欧洲",
+        "🟢 直连"
+      ],
+      "default": "🗽 自动",
+      "interrupt_exist_connections": false
     },
     {
       "type": "selector",
       "tag": "🤖 AI",
-      "outbounds": ["🗽 自动", "🌎 美洲", "🌍 欧洲"],
+      "outbounds": [
+        "🗽 自动",
+        "🌎 美洲",
+        "🌍 欧洲"
+      ],
       "default": "🗽 自动",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "🍎 苹果",
-      "outbounds": ["🟢 直连", "🚀 节点选择"],
+      "outbounds": [
+        "🟢 直连",
+        "🚀 节点选择"
+      ],
       "default": "🟢 直连",
       "interrupt_exist_connections": true
     },
     {
       "tag": "🐟 漏网之鱼",
       "type": "selector",
-      "outbounds": ["🟢 直连", "🚀 节点选择"],
-      "default": "🚀 节点选择"
+      "outbounds": [
+        "🟢 直连",
+        "🚀 节点选择"
+      ],
+      "default": "🚀 节点选择",
+      "interrupt_exist_connections": false
     },
     {
       "tag": "🗽 自动",
       "type": "urltest",
-      "outbounds": ["exclude: 🟢 直连|🇨🇳|cn|中"],
-      "interrupt_exist_connections": true
+      "outbounds": [
+        "exclude: 🟢 直连|🇨🇳|cn|中"
+      ],
+      "url": "https://www.google.com/generate_204",
+      "interval": "10m0s",
+      "tolerance": 50,
+      "interrupt_exist_connections": false
     },
     {
       "tag": "🌏 亚洲",
       "type": "urltest",
-      "outbounds": ["include: 🇭🇰|🇸🇬|🇹🇼|🇻🇳|🇮🇳|🇲🇴|🇰🇷|🇯🇵|🇹🇭"],
-      "interrupt_exist_connections": true
+      "outbounds": [
+        "include: 🇭🇰|🇸🇬|🇹🇼|🇻🇳|🇮🇳|🇲🇴|🇰🇷|🇯🇵|🇹🇭"
+      ],
+      "url": "https://www.google.com/generate_204",
+      "interval": "10m0s",
+      "tolerance": 50,
+      "interrupt_exist_connections": false
     },
     {
       "tag": "🌎 美洲",
       "type": "urltest",
-      "outbounds": ["include: us|US|CA|🇺🇲|🇺🇸|🇨🇦|🇧🇷|🇲🇽|🇦🇺|🇳🇿"],
-      "interrupt_exist_connections": true
+      "outbounds": [
+        "include: us|US|CA|🇺🇲|🇺🇸|🇨🇦|🇧🇷|🇲🇽|🇦🇺|🇳🇿"
+      ],
+      "url": "https://www.google.com/generate_204",
+      "interval": "10m0s",
+      "tolerance": 50,
+      "interrupt_exist_connections": false
     },
     {
       "tag": "🌍 欧洲",
       "type": "urltest",
-      "outbounds": ["include: 🇪🇺|🇪🇸|🇫🇷|🇩🇪|🇬🇧|🇺🇦|🇷🇺|🇮🇹|🇱🇺|🇳🇴|🇮🇹|🇳🇱|🇧🇿|🇸🇪|🇨🇭|🇷🇴"],
-      "interval": "5m",
-      "interrupt_exist_connections": true
+      "outbounds": [
+        "include: 🇪🇺|🇪🇸|🇫🇷|🇩🇪|🇬🇧|🇺🇦|🇷🇺|🇮🇹|🇱🇺|🇳🇴|🇮🇹|🇳🇱|🇧🇿|🇸🇪|🇨🇭|🇷🇴"
+      ],
+      "url": "https://www.google.com/generate_204",
+      "interval": "10m0s",
+      "tolerance": 50,
+      "interrupt_exist_connections": false
     },
     {
       "tag": "🟢 直连",
@@ -111,9 +156,6 @@
   ],
   "route": {
     "rules": [
-      {
-        "action": "sniff"
-      },
       {
         "protocol": "dns",
         "action": "hijack-dns"
@@ -135,7 +177,10 @@
         "outbound": "🍎 苹果"
       },
       {
-        "rule_set": ["OpenAI", "ai"],
+        "rule_set": [
+          "OpenAI",
+          "ai"
+        ],
         "outbound": "🤖 AI"
       },
       {
@@ -143,11 +188,20 @@
         "action": "reject"
       },
       {
-        "rule_set": ["geosite-adblockplus", "geosite-adguard", "ads"],
+        "rule_set": [
+          "geosite-adblockplus",
+          "geosite-adguard",
+          "ads"
+        ],
         "action": "reject"
       },
       {
-        "rule_set": ["GFW", "TikTok", "Telegram", "Netflix"],
+        "rule_set": [
+          "GFW",
+          "TikTok",
+          "Telegram",
+          "Netflix"
+        ],
         "outbound": "🚀 节点选择"
       },
       {
@@ -277,7 +331,8 @@
       }
     ],
     "final": "🐟 漏网之鱼",
-    "auto_detect_interface": true
+    "auto_detect_interface": true,
+    "override_android_vpn": true
   },
   "experimental": {
     "cache_file": {
