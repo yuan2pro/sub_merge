@@ -30,7 +30,7 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/run_in_Actions/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-      
+
       - name: set timezone
         run: sudo timedatectl set-timezone 'Asia/Shanghai'
 
@@ -60,19 +60,6 @@ jobs:
           key: go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: go-mod-${{ hashFiles('**/go.sum') }}
 
-      # 安装rust cargo环境
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      # 安装https://github.com/yuan2pro/mihomo-speedtest-rs
-      - name: Install mihomo-speedtest-rs
-        run: |
-          cd ${{ env.CURRENT_DIR }}
-          cargo install --git https://github.com/yuan2pro/mihomo-speedtest-rs.git --locked    
-        
       # 安装mihomo的Alpha分支
       - name: Install mihomo
         run: |
@@ -81,12 +68,12 @@ jobs:
           chmod +x mihomo
           # 将构建的mihomo二进制文件复制到系统PATH中
           sudo cp mihomo /usr/local/bin/
-      
+
       # 筛选节点：使用多进程多端口mihomo进行延迟测试和筛选
       - name: filter nodes with mihomo
         run: |
           cd ${{ env.CURRENT_DIR }}
-          python3 ./mihomo_test.py --parallel ./sub
+          python3 ./mihomo_test.py --parallel ./sub --test-workers 32
           # 输出筛选统计信息
           echo "::group::Filter Statistics"
           total_files=$(ls ${{ env.CURRENT_DIR }}/sub/*_filtered.yaml 2>/dev/null | wc -l)
@@ -107,7 +94,7 @@ jobs:
         run: |
           find ${{ env.CURRENT_DIR }}/sub -type f -name "*.yaml" -not -name "*_filtered.yaml" -delete
           python ./merge.py
-      
+
       - name: Checkout clash2singbox repository
         uses: actions/checkout@v2
         with:
@@ -118,7 +105,7 @@ jobs:
         run: |
           ls  # 列出当前目录中的文件
           ls sub
-        
+
 
       - name: Build Go program
         run: |
@@ -129,7 +116,7 @@ jobs:
             echo "构建失败，但继续执行"
             exit 0
           fi
-          
+
           for file in ${{ env.CURRENT_DIR }}/sub/*.yaml; do
             filename=$(basename "$file")
             if ./clash2singbox -i "$file" -o "${{ env.CURRENT_DIR }}/sub/${filename%.yaml}.json"; then

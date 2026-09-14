@@ -178,7 +178,8 @@ def test_mihomo_api_connection(api_url: str, api_secret: str = None) -> bool:
 
 
 def filter_proxies(input_file: str, output_file: str, max_delay: int,
-                  api_url: str, timeout: int, test_url: str, api_secret: str = None) -> tuple[int, int]:
+                  api_url: str, timeout: int, test_url: str, api_secret: str = None,
+                  test_workers: int = 32) -> tuple[int, int]:
     """
     筛选代理节点
 
@@ -209,6 +210,7 @@ def filter_proxies(input_file: str, output_file: str, max_delay: int,
 
         # 验证并筛选代理
         valid_proxies = []
+        seen_configs = set()
         passed_proxies = []
 
         for proxy in proxies:
@@ -221,24 +223,37 @@ def filter_proxies(input_file: str, output_file: str, max_delay: int,
                 print(f"  ✗ {proxy.get('name', 'Unknown')}: 配置无效")
                 continue
 
+            config_key = yaml.safe_dump(proxy, sort_keys=True, allow_unicode=True)
+            if config_key in seen_configs:
+                continue
+            seen_configs.add(config_key)
             valid_proxies.append(proxy)
 
-        print(f"有效代理: {len(valid_proxies)} 个")
+        print(f"有效代理: {len(valid_proxies)} 个 (已去重)")
 
         # 测试每个代理的延迟
-        for proxy in valid_proxies:
-            # 检查超时
-            if check_timeout():
-                print("\n⚠️  运行时间超过5小时，强制退出程序")
-                sys.exit(0)
-                
-            proxy_name = proxy.get('name', 'Unknown')
-            print(f"测试 {proxy_name}...")
-
-            success, delay = test_proxy_delay(proxy_name, api_url, test_url, timeout, api_secret)
-
-            if success and delay > 0:
-                if delay <= max_delay:
+        worker_count = max(1, min(test_workers, len(valid_proxies)))
+        print(f"并发测速: {worker_count} 个线程")
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            futures = {
+                executor.submit(
+                    test_proxy_delay, proxy.get('name', 'Unknown'),
+                    api_url, test_url, timeout, api_secret
+                ): proxy
+                for proxy in valid_proxies
+            }
+            for future in as_completed(futures):
+                if check_timeout():
+                    print("\n⚠️  运行时间超过5小时，强制退出程序")
+                    sys.exit(0)
+                proxy = futures[future]
+                proxy_name = proxy.get('name', 'Unknown')
+                try:
+                    success, delay = future.result()
+                except Exception as error:
+                    print(f"  ✗ {proxy_name}: {error}")
+                    continue
+                if success and 0 < delay <= max_delay:
                     passed_proxies.append(proxy)
                     print(f"  ✓ {proxy_name}: {delay}ms")
 
@@ -274,7 +289,7 @@ def filter_proxies(input_file: str, output_file: str, max_delay: int,
         sys.exit(1)
 
 
-def process_file(file_path: str, port: int) -> bool:
+def process_file(file_path: str, port: int, test_workers: int) -> bool:
     """
     处理单个YAML文件，使用指定端口运行mihomo实例
     """
@@ -374,7 +389,8 @@ def process_file(file_path: str, port: int) -> bool:
             api_url=f'http://127.0.0.1:{port}',
             timeout=15,
             test_url='https://www.gstatic.com/generate_204',
-            api_secret='test123'
+            api_secret='test123',
+            test_workers=test_workers
         )
         success = passed > 0
     except Exception as e:
@@ -406,7 +422,7 @@ def process_file(file_path: str, port: int) -> bool:
     return success
 
 
-def parallel_filter_proxies(directory: str) -> int:
+def parallel_filter_proxies(directory: str, test_workers: int = 32) -> int:
     """
     并行处理目录中的所有YAML文件
     返回处理的成功文件数
@@ -431,7 +447,7 @@ def parallel_filter_proxies(directory: str) -> int:
         for i, filename in enumerate(yaml_files):
             file_path = os.path.join(directory, filename)
             port = base_port + i
-            future = executor.submit(process_file, file_path, port)
+            future = executor.submit(process_file, file_path, port, test_workers)
             futures.append((future, filename))
 
         # 等待所有任务完成
@@ -460,6 +476,8 @@ def main():
 
     parser.add_argument('--parallel', '-p', metavar='DIRECTORY',
                        help='并行处理指定目录中的所有YAML文件')
+    parser.add_argument('--test-workers', type=int, default=32,
+                       help='每个文件的并发测速线程数, 默认32')
 
     # 单文件处理参数
     parser.add_argument('input_yaml', nargs='?', help='输入的YAML配置文件路径')
@@ -490,7 +508,7 @@ def main():
 
     if args.parallel:
         # 并行处理模式
-        success_count = parallel_filter_proxies(args.parallel)
+        success_count = parallel_filter_proxies(args.parallel, args.test_workers)
         print(f"Processed {success_count} files successfully")
         sys.exit(0 if success_count > 0 else 1)
     elif args.input_yaml and args.output_yaml:
@@ -502,7 +520,8 @@ def main():
             args.api_url,
             args.timeout,
             args.test_url,
-            args.api_secret
+            args.api_secret,
+            args.test_workers
         )
         # 返回退出码：如果有节点通过测试则为0，否则为1
         sys.exit(0 if passed > 0 else 1)
